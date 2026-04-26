@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+﻿import { Link, createFileRoute } from "@tanstack/react-router";
 import { Button } from "../components/ui/button";
 import {
   Accordion,
@@ -131,40 +131,45 @@ Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta 
         </div>
       </section>
 
-      {/* PREÇO */}
-      <section id="preco" className="border-y border-border/60 bg-black text-paper">
+      {/* PRECO */}
+      <section id="preco" className="border-y border-border/60 bg-paper/40 text-ink">
         <div className="mx-auto max-w-5xl px-6 py-20 sm:py-28">
-          <div className="grid items-center gap-12 md:grid-cols-2">
-            <div>
-              <p className="font-script text-2xl text-paper/70">Pacote</p>
-              <h2 className="font-display text-4xl font-medium sm:text-5xl">Polaroids</h2>
-              <div className="mt-8 flex items-baseline gap-3">
-                <span className="font-display text-6xl font-medium">R$ 9,90</span>
-              </div>
-              <div className="mt-8">
-                <Button
-                  size="lg"
-                  className="h-12 rounded-full bg-paper px-8 text-base font-medium text-ink hover:bg-cream"
-                  asChild
-                >
-                  <Link to="/criar">Criar minhas Polaroids agora</Link>
-                </Button>
-                <p className="mt-3 text-sm text-paper/60">
-                  Você só paga ao final, depois de visualizar.
-                </p>
+          <div className="mx-auto w-full max-w-[420px] rounded-3xl border border-ink/20 bg-paper p-6 shadow-soft sm:p-8">
+            <div className="text-center">
+              <span className="inline-flex items-center rounded-full border border-ink/20 bg-ink px-3 py-1 text-[11px] font-semibold tracking-wide text-paper">
+                Acesso Antecipado
+              </span>
+              <h2 className="mt-4 font-display text-4xl font-medium text-ink sm:text-5xl">
+                Pacote Polaroids
+              </h2>
+              <div className="mt-5">
+                <span className="font-display text-6xl font-medium text-ink">R$ 9,90</span>
               </div>
             </div>
 
-            <ul className="grid gap-3 rounded-2xl border border-paper/15 bg-paper/[0.04] p-6 sm:p-8">
+            <ul className="mt-8 grid gap-3 rounded-2xl border border-ink/12 bg-paper/60 p-6 sm:p-8">
               {benefits.map((b) => (
-                <li key={b} className="flex items-start gap-3 text-paper/90">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-paper/15">
+                <li key={b} className="flex items-start gap-3 text-ink/90">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ink/10">
                     <Check className="h-3 w-3" strokeWidth={2.5} />
                   </span>
                   <span className="text-sm">{b}</span>
                 </li>
               ))}
             </ul>
+
+            <div className="mt-8 text-center">
+              <Button
+                size="lg"
+                className="h-12 w-full rounded-xl bg-ink px-8 text-base font-medium text-paper hover:bg-ink/90"
+                asChild
+              >
+                <Link to="/criar">Criar minhas Polaroids agora</Link>
+              </Button>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Voce so paga ao final, depois de visualizar.
+              </p>
+            </div>
           </div>
         </div>
       </section>

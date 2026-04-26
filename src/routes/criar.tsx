@@ -13,9 +13,9 @@ import { Label } from "../components/ui/label";
 import { Camera, Upload, X, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../lib/utils";
 import t1 from "../assets/template-1.png";
-import t2 from "../assets/template-2.jpg";
-import t3 from "../assets/template-3.jpg";
-import t4 from "../assets/template-4.jpg";
+import t2 from "../assets/template-2.png";
+import t3 from "../assets/template-3.png";
+import t4 from "../assets/template-4.png";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({

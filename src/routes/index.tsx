@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
 const steps = [
   { n: "01", title: "Faça upload", text: "Suas fotos do celular ou computador, sem complicação." },
   { n: "02", title: "Escolha um modelo", text: "Modelos retrô prontos, com fontes e composições selecionadas." },
-  { n: "03", title: "Baixe em alta", text: "PDF, PNG ou JPG prontos para imprimir ou presentear." },
+  { n: "03", title: "Baixe em alta", text: "PDF, PNG ou JPG prontos para imprimir." },
 ];
 
 const templates = [
@@ -32,10 +32,8 @@ const templates = [
 ];
 
 const benefits = [
-  "Até 20 Polaroids personalizadas",
-  "Modelos retrô prontos",
+  "Até 10 Polaroids personalizadas",
   "Frases editáveis",
-  "Fontes cursivas",
   "Preview em tempo real",
   "Download em alta qualidade",
   "PDF pronto para impressão",
@@ -134,14 +132,14 @@ Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta 
       </section>
 
       {/* PREÇO */}
-      <section id="preco" className="border-y border-border/60 bg-ink text-paper">
+      <section id="preco" className="border-y border-border/60 bg-black text-paper">
         <div className="mx-auto max-w-5xl px-6 py-20 sm:py-28">
           <div className="grid items-center gap-12 md:grid-cols-2">
             <div>
               <p className="font-script text-2xl text-paper/70">Pacote</p>
-              <h2 className="font-display text-4xl font-medium sm:text-5xl">Memórias</h2>
+              <h2 className="font-display text-4xl font-medium sm:text-5xl">Polaroids</h2>
               <div className="mt-8 flex items-baseline gap-3">
-                <span className="font-display text-6xl font-medium">R$ 19,90</span>
+                <span className="font-display text-6xl font-medium">R$ 9,90</span>
               </div>
               <div className="mt-8">
                 <Button
@@ -195,20 +193,6 @@ Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta 
           ))}
         </Accordion>
       </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-10 text-sm text-muted-foreground sm:flex-row">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-paper">
-              <Camera className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </span>
-            <span className="font-display text-base text-ink">Polaroids</span>
-          </div>
-          <p className="font-script text-xl text-sepia">guarde a memória, em papel.</p>
-          <p>© {new Date().getFullYear()} Polaroids</p>
-        </div>
-      </footer>
     </div>
   );
 }

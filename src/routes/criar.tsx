@@ -70,12 +70,14 @@ interface PolaroidItem {
   templateId: TemplateId;
   size: Size;
   align: Align;
+  imagePosX: number;
+  imagePosY: number;
 }
 
 const sizeClass: Record<Size, string> = {
-  sm: "text-lg",
-  md: "text-2xl",
-  lg: "text-3xl",
+  sm: "text-3xl",
+  md: "text-4xl",
+  lg: "text-[2.5rem]",
 };
 
 const alignClass: Record<Align, string> = {
@@ -83,6 +85,10 @@ const alignClass: Record<Align, string> = {
   center: "text-center",
   right: "text-right",
 };
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
+}
 
 function newDraft(templateId: TemplateId = "amor"): PolaroidItem {
   const t = templates.find((x) => x.id === templateId)!;
@@ -93,7 +99,19 @@ function newDraft(templateId: TemplateId = "amor"): PolaroidItem {
     templateId,
     size: t.defaultSize,
     align: t.defaultAlign,
+    imagePosX: 50,
+    imagePosY: 50,
   };
+}
+
+interface ImageDragState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startPosX: number;
+  startPosY: number;
+  areaWidth: number;
+  areaHeight: number;
 }
 
 function CriarPage() {
@@ -101,7 +119,9 @@ function CriarPage() {
   const [saved, setSaved] = useState<PolaroidItem[]>([]);
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [isAdjustingImage, setIsAdjustingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<ImageDragState | null>(null);
 
   const perPage = 4;
   const totalPages = Math.ceil(templates.length / perPage);
@@ -118,7 +138,13 @@ function CriarPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setDraft((d) => ({ ...d, photo: reader.result as string }));
+      setDraft((d) => ({
+        ...d,
+        photo: reader.result as string,
+        imagePosX: 50,
+        imagePosY: 50,
+      }));
+      setIsAdjustingImage(false);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -140,6 +166,7 @@ function CriarPage() {
       }
       return [...s, draft];
     });
+    setIsAdjustingImage(false);
     setDraft(newDraft(draft.templateId));
   }
 
@@ -150,6 +177,7 @@ function CriarPage() {
 
   function editarSalva(item: PolaroidItem) {
     setDraft({ ...item });
+    setIsAdjustingImage(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -157,8 +185,45 @@ function CriarPage() {
     setSaved((s) => s.filter((x) => x.id !== id));
   }
 
+  function onStartImageDrag(e: React.PointerEvent<HTMLDivElement>) {
+    if (!isAdjustingImage || !draft.photo) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startPosX: draft.imagePosX,
+      startPosY: draft.imagePosY,
+      areaWidth: rect.width,
+      areaHeight: rect.height,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onMoveImageDrag(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!isAdjustingImage || !drag || drag.pointerId !== e.pointerId) return;
+    const deltaX = e.clientX - drag.startX;
+    const deltaY = e.clientY - drag.startY;
+    const nextX = clampPercent(drag.startPosX - (deltaX / Math.max(drag.areaWidth, 1)) * 100);
+    const nextY = clampPercent(drag.startPosY - (deltaY / Math.max(drag.areaHeight, 1)) * 100);
+    setDraft((d) => ({ ...d, imagePosX: nextX, imagePosY: nextY }));
+  }
+
+  function onEndImageDrag(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    dragRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }
+
   return (
     <div className="min-h-screen">
+      {isAdjustingImage && (
+        <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]" />
+      )}
 
       <main className="mx-auto max-w-7xl px-6 py-10">
         <div className="grid items-stretch gap-8 lg:grid-cols-[300px_1fr_300px]">
@@ -228,19 +293,36 @@ function CriarPage() {
           <section className="order-1 lg:order-2 lg:h-full">
             <div className="leather-card flex h-full flex-col items-center justify-center p-5">
               <div className="flex w-full max-w-sm flex-col lg:max-w-md">
-                <div className="polaroid mx-auto w-full">
+                <div className="polaroid mx-auto box-border h-[10cm] w-[7cm] max-w-full">
                   {draft.photo ? (
-                    <div className={cn("aspect-square overflow-hidden bg-muted", tpl.toneClass)}>
+                    <div
+                      className={cn(
+                        "relative h-[7.8cm] w-full overflow-hidden bg-muted",
+                        tpl.toneClass,
+                        isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
+                        isAdjustingImage ? "z-50" : "",
+                      )}
+                      onPointerDown={onStartImageDrag}
+                      onPointerMove={onMoveImageDrag}
+                      onPointerUp={onEndImageDrag}
+                      onPointerCancel={onEndImageDrag}
+                      onLostPointerCapture={onEndImageDrag}
+                    >
                       <img
                         src={draft.photo}
                         alt="Sua foto"
                         className="h-full w-full object-cover"
+                        style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
+                        draggable={false}
                       />
+                      {isAdjustingImage && (
+                        <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
+                      )}
                     </div>
                   ) : (
                     <button
                       onClick={pickFile}
-                      className="flex aspect-square w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+                      className="flex h-[7.8cm] w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
                     >
                       <Upload className="h-7 w-7" strokeWidth={1.5} />
                       <span className="font-display text-lg">Adicionar foto</span>
@@ -250,15 +332,19 @@ function CriarPage() {
 
                   <p
                     className={cn(
-                      "mt-4 px-2 text-ink/85 leading-tight",
-                      tpl.fontClass,
-                      sizeClass[draft.size],
-                      alignClass[draft.align],
+                      "mt-1 flex h-[3rem] items-center overflow-hidden px-2 text-ink/85 leading-none",
                     )}
                   >
-                    {draft.caption || (
-                      <span className="text-muted-foreground/60">sua frase aqui</span>
-                    )}
+                    <span
+                      className={cn(
+                        "block w-full",
+                        tpl.fontClass,
+                        sizeClass[draft.size],
+                        alignClass[draft.align],
+                      )}
+                    >
+                      {draft.caption}
+                    </span>
                   </p>
                 </div>
 
@@ -271,23 +357,49 @@ function CriarPage() {
                 />
 
                 {draft.photo && (
-                  <div className="mt-5 flex justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={pickFile}
-                      className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-                    >
-                      Trocar foto
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDraft((d) => ({ ...d, photo: null }))}
-                      className="rounded-full text-muted-foreground hover:bg-muted hover:text-ink"
-                    >
-                      Remover
-                    </Button>
+                  <div className="mt-5">
+                    {isAdjustingImage ? (
+                      <div className="relative z-50 flex justify-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsAdjustingImage(false)}
+                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                        >
+                          Salvar ajuste
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={pickFile}
+                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                        >
+                          Trocar imagem
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsAdjustingImage(true)}
+                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                        >
+                          Ajustar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDraft((d) => ({ ...d, photo: null }));
+                            setIsAdjustingImage(false);
+                          }}
+                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                        >
+                          Remover
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -412,7 +524,12 @@ function CriarPage() {
                     <div className="polaroid">
                       <div className="aspect-square overflow-hidden bg-muted">
                         {item.photo && (
-                          <img src={item.photo} alt="" className="h-full w-full object-cover" />
+                          <img
+                            src={item.photo}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            style={{ objectPosition: `${item.imagePosX}% ${item.imagePosY}%` }}
+                          />
                         )}
                       </div>
                       <p
@@ -466,14 +583,26 @@ function CriarPage() {
             {saved.slice(0, 6).map((item) => (
               <div key={item.id} className="polaroid !p-1.5 !pb-3 w-20">
                 <div className="aspect-square overflow-hidden bg-muted">
-                  {item.photo && <img src={item.photo} alt="" className="h-full w-full object-cover" />}
+                  {item.photo && (
+                    <img
+                      src={item.photo}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      style={{ objectPosition: `${item.imagePosX}% ${item.imagePosY}%` }}
+                    />
+                  )}
                 </div>
               </div>
             ))}
             {saved.length === 0 && draft.photo && (
               <div className="polaroid !p-1.5 !pb-3 w-20">
                 <div className="aspect-square overflow-hidden bg-muted">
-                  <img src={draft.photo} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={draft.photo}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
+                  />
                 </div>
               </div>
             )}

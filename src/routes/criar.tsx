@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import {
@@ -51,13 +51,16 @@ interface TemplateDef {
   toneClass: string;
 }
 
+const CAPTION_FONT_CLASS = "font-script";
+const CAPTION_DEFAULT_SIZE: Size = "md";
+
 const templates: TemplateDef[] = [
-  { id: "amor", name: "Amor antigo", thumb: t1, fontClass: "font-script", defaultSize: "lg", defaultAlign: "center", toneClass: "" },
-  { id: "viagem", name: "Viagem de verão", thumb: t2, fontClass: "font-script", defaultSize: "md", defaultAlign: "left", toneClass: "" },
-  { id: "familia", name: "Família", thumb: t3, fontClass: "font-display italic", defaultSize: "md", defaultAlign: "center", toneClass: "" },
-  { id: "carta", name: "Carta curta", thumb: t4, fontClass: "font-script", defaultSize: "md", defaultAlign: "left", toneClass: "" },
-  { id: "minimalista", name: "Minimalista", thumb: t2, fontClass: "font-body uppercase tracking-[0.2em]", defaultSize: "sm", defaultAlign: "center", toneClass: "" },
-  { id: "album", name: "Álbum retrô", thumb: t1, fontClass: "font-display italic", defaultSize: "lg", defaultAlign: "center", toneClass: "sepia-[0.15]" },
+  { id: "amor", name: "Amor antigo", thumb: t1, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "" },
+  { id: "viagem", name: "Viagem de verão", thumb: t2, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "left", toneClass: "" },
+  { id: "familia", name: "Família", thumb: t3, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "" },
+  { id: "carta", name: "Carta curta", thumb: t4, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "left", toneClass: "" },
+  { id: "minimalista", name: "Minimalista", thumb: t2, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "" },
+  { id: "album", name: "Álbum retrô", thumb: t1, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "sepia-[0.15]" },
 ];
 
 interface PolaroidItem {
@@ -166,7 +169,7 @@ function CriarPage() {
               <p className="mt-1 font-script text-lg text-sepia">Escolha um estilo</p>
 
               <div className="mt-5 flex-1">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid min-h-[340px] grid-cols-2 content-start gap-3">
                   {visibleTemplates.map((t) => {
                     const active = t.id === draft.templateId;
                     return (

@@ -417,14 +417,26 @@ function CriarPage() {
                   <Label htmlFor="frase" className="text-sm font-medium text-ink">
                     Frase da Polaroid
                   </Label>
-                  <Input
-                    id="frase"
-                    value={draft.caption}
-                    onChange={(e) => setDraft((d) => ({ ...d, caption: e.target.value }))}
-                    placeholder="Escreva uma frase especial"
-                    maxLength={60}
-                    className="mt-1.5 rounded-lg border-border bg-paper"
-                  />
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="frase"
+                      value={draft.caption}
+                      onChange={(e) => setDraft((d) => ({ ...d, caption: e.target.value }))}
+                      placeholder="Escreva uma frase especial"
+                      maxLength={60}
+                      className="rounded-lg border-border bg-paper pr-10"
+                    />
+                    {draft.caption.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setDraft((d) => ({ ...d, caption: "" }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-cream hover:text-ink"
+                        aria-label="Limpar frase"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                   <p className="mt-1 text-right text-xs text-muted-foreground">
                     {draft.caption.length}/60
                   </p>

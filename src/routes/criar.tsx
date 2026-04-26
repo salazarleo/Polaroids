@@ -252,7 +252,7 @@ function CriarPage() {
                     className={cn(
                       "mt-4 px-2 text-ink/85 leading-tight",
                       tpl.fontClass,
-                      sizeClass[draft.size],
+                      draft.caption ? sizeClass[draft.size] : sizeClass[CAPTION_DEFAULT_SIZE],
                       alignClass[draft.align],
                     )}
                   >

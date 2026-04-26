@@ -410,7 +410,6 @@ function CriarPage() {
           <aside className="order-3 lg:h-full">
             <div className="leather-card flex h-full flex-col p-5">
               <h2 className="font-display text-xl font-medium">Personalizar</h2>
-              <p className="mt-1 font-script text-lg text-sepia">Detalhes da sua Polaroid</p>
 
               <div className="mt-5 space-y-5">
                 <div>

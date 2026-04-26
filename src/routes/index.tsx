@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { Button } from "../components/ui/button";
 import {
   Accordion,
@@ -61,12 +61,11 @@ function Index() {
       <section className="mx-auto max-w-6xl px-6 pt-6 pb-16 text-center sm:pt-5">
         <p className="font-script text-2xl text-sepia">memórias em papel</p>
         <h1 className="mx-auto mt-3 max-w-3xl font-display text-4xl font-medium leading-[1.1] tracking-tight text-ink sm:text-5xl md:text-6xl">
-          Transforme suas fotos em{" "}
+          Transforme fotos em{" "}
           <em className="italic text-sepia">Polaroids</em> personalizadas
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Escolha um modelo pronto, adicione uma frase especial e baixe suas fotos em
-          alta qualidade para imprimir ou presentear.
+Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta qualidade para imprimir.
         </p>
         <div className="mt-5">
           <Button
@@ -74,7 +73,7 @@ function Index() {
             className="h-12 rounded-full bg-ink px-8 text-base font-medium text-paper shadow-soft hover:bg-ink/90"
             asChild
           >
-            <a href="#preco">Criar minhas Polaroids</a>
+            <Link to="/criar">Criar minhas Polaroids</Link>
           </Button>
         </div>
 
@@ -137,8 +136,9 @@ function Index() {
                 <Button
                   size="lg"
                   className="h-12 rounded-full bg-paper px-8 text-base font-medium text-ink hover:bg-cream"
+                  asChild
                 >
-                  Criar minhas Polaroids agora
+                  <Link to="/criar">Criar minhas Polaroids agora</Link>
                 </Button>
                 <p className="mt-3 text-sm text-paper/60">
                   Você só paga ao final, depois de visualizar.

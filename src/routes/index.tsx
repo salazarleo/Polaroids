@@ -134,24 +134,32 @@ Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta 
       {/* PRECO */}
       <section id="preco" className="border-y border-border/60 bg-paper/40 text-ink">
         <div className="mx-auto max-w-5xl px-6 py-20 sm:py-28">
-          <div className="mx-auto w-full max-w-[420px] rounded-3xl border border-ink/20 bg-paper p-6 shadow-soft sm:p-8">
+          <div className="leather-card mx-auto w-full max-w-[420px] rounded-3xl p-6 sm:p-8">
             <div className="text-center">
-              <span className="inline-flex items-center rounded-full border border-ink/20 bg-ink px-3 py-1 text-[11px] font-semibold tracking-wide text-paper">
+              <span className="inline-flex items-center rounded-full border border-sepia/40 bg-paper px-3 py-1 text-[11px] font-semibold tracking-wide text-sepia">
                 Acesso Antecipado
               </span>
-              <h2 className="mt-4 font-display text-4xl font-medium text-ink sm:text-5xl">
+              <h2
+                className="mt-4 text-2xl font-bold text-ink sm:text-3xl"
+                style={{ fontFamily: "Montserrat, sans-serif" }}
+              >
                 Pacote Polaroids
               </h2>
               <div className="mt-5">
-                <span className="font-display text-6xl font-medium text-ink">R$ 9,90</span>
+                <span
+                  className="text-6xl font-bold text-ink"
+                  style={{ fontFamily: "Montserrat, sans-serif" }}
+                >
+                  R$ 9,90
+                </span>
               </div>
             </div>
 
-            <ul className="mt-8 grid gap-3 rounded-2xl border border-ink/12 bg-paper/60 p-6 sm:p-8">
+            <ul className="mt-8 grid gap-3 rounded-2xl border border-border/80 bg-paper/55 p-6 sm:p-8">
               {benefits.map((b) => (
                 <li key={b} className="flex items-start gap-3 text-ink/90">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ink/10">
-                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sepia/15 text-sepia">
+                    <Check className="h-3 w-3 text-sepia" strokeWidth={2.5} />
                   </span>
                   <span className="text-sm">{b}</span>
                 </li>

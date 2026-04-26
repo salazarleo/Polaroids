@@ -227,8 +227,8 @@ function CriarPage() {
           {/* CENTRO - PREVIEW */}
           <section className="order-1 lg:order-2 lg:h-full">
             <div className="leather-card flex h-full flex-col items-center justify-center p-5">
-              <div className="flex w-full max-w-sm flex-col">
-                <div className="polaroid mx-auto">
+              <div className="flex w-full max-w-sm flex-col lg:max-w-md">
+                <div className="polaroid mx-auto w-full">
                   {draft.photo ? (
                     <div className={cn("aspect-square overflow-hidden bg-muted", tpl.toneClass)}>
                       <img
@@ -252,7 +252,7 @@ function CriarPage() {
                     className={cn(
                       "mt-4 px-2 text-ink/85 leading-tight",
                       tpl.fontClass,
-                      draft.caption ? sizeClass[draft.size] : sizeClass[CAPTION_DEFAULT_SIZE],
+                      sizeClass[draft.size],
                       alignClass[draft.align],
                     )}
                   >

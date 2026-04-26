@@ -6,13 +6,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../components/ui/accordion";
-import { Check, Camera } from "lucide-react";
+import { Check, Camera, Sparkles } from "lucide-react";
 import { HeroCarousel } from "../components/HeroCarousel";
 import { Polaroid } from "../components/Polaroid";
-import t1 from "../assets/template-1.jpg";
-import t2 from "../assets/template-2.jpg";
-import t3 from "../assets/template-3.jpg";
-import t4 from "../assets/template-4.jpg";
+import t1 from "../assets/template-1.png";
+import t2 from "../assets/template-2.png";
+import t3 from "../assets/template-3.png";
+import t4 from "../assets/template-4.png";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -59,7 +59,12 @@ function Index() {
 
       {/* HERO */}
       <section className="mx-auto max-w-6xl px-6 pt-6 pb-16 text-center sm:pt-5">
-        <p className="font-script text-2xl text-sepia">memórias em papel</p>
+        <div className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-sepia bg-paper px-3.5 py-1.5 text-sepia">
+          <Sparkles className="h-3.5 w-3.5 text-sepia" strokeWidth={1.8} />
+          <span className="text-xs font-semibold tracking-tight text-sepia sm:text-sm">
+            Mais de 1.2K+ pessoas já criaram suas Polaroids
+          </span>
+        </div>
         <h1 className="mx-auto mt-3 max-w-3xl font-display text-4xl font-medium leading-[1.1] tracking-tight text-ink sm:text-5xl md:text-6xl">
           Transforme fotos em{" "}
           <em className="italic text-sepia">Polaroids</em> personalizadas
@@ -70,7 +75,7 @@ Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta 
         <div className="mt-5">
           <Button
             size="lg"
-            className="h-12 rounded-full bg-ink px-8 text-base font-medium text-paper shadow-soft hover:bg-ink/90"
+            className="h-14 min-w-[300px] rounded-xl bg-ink px-12 text-lg font-semibold text-paper shadow-soft hover:bg-ink/90"
             asChild
           >
             <Link to="/criar">Criar minhas Polaroids</Link>
@@ -116,7 +121,13 @@ Personalize suas fotos com modelos únicos, frases especiais e arquivos em alta 
         <div className="mt-14 grid grid-cols-2 gap-6 sm:gap-10 md:grid-cols-4">
           {templates.map((t) => (
             <div key={t.name} className="flex flex-col items-center">
-              <Polaroid src={t.src} alt={t.name} caption={t.name} rotate={t.rotate} />
+              <Polaroid
+                src={t.src}
+                alt={t.name}
+                className="max-w-[248px] !rounded-xl !bg-black !p-1.5 overflow-hidden after:content-none"
+                imageWrapperClassName="aspect-[4/5] rounded-[10px] bg-black"
+                imageClassName="object-contain scale-[1.38] hover:scale-[1.46]"
+              />
             </div>
           ))}
         </div>

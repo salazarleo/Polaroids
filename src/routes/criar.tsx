@@ -40,6 +40,8 @@ export const Route = createFileRoute("/criar")({
 type TemplateId = "amor" | "viagem" | "familia" | "carta" | "minimalista" | "album";
 type Size = "sm" | "md" | "lg";
 type Align = "left" | "center" | "right";
+type PolaroidSizeId = "7x10" | "5x8" | "4x5";
+
 type FontStyleId =
   | "garet"
   | "bebas-neue"
@@ -64,6 +66,21 @@ interface FontStyleDef {
   name: string;
   fontClass: string;
   sample: string;
+}
+
+interface PolaroidSizeDef {
+  id: PolaroidSizeId;
+  label: string;
+  widthCm: number;
+  heightCm: number;
+  imageHeightCm: number;
+  measureWidthCm: number;
+  measureHeightCm: number;
+  previewWidthCm: number;
+  previewHeightCm: number;
+  previewImageHeightCm: number;
+  previewMeasureWidthCm: number;
+  previewMeasureHeightCm: number;
 }
 
 const DEFAULT_CAPTION_SIZE: Size = "md";
@@ -170,12 +187,61 @@ const fontStyles: FontStyleDef[] = [
   },
 ];
 
+const polaroidSizes: PolaroidSizeDef[] = [
+  {
+    id: "7x10",
+    label: "7x10",
+    widthCm: 7,
+    heightCm: 10,
+    imageHeightCm: 7.8,
+    measureWidthCm: 5.8,
+    measureHeightCm: 8.2,
+
+    previewWidthCm: 7,
+    previewHeightCm: 10,
+    previewImageHeightCm: 7.8,
+    previewMeasureWidthCm: 5.8,
+    previewMeasureHeightCm: 8.2,
+  },
+  {
+    id: "5x8",
+    label: "5x8",
+    widthCm: 5,
+    heightCm: 8,
+    imageHeightCm: 6.2,
+    measureWidthCm: 4.1,
+    measureHeightCm: 6.4,
+
+    previewWidthCm: 6.25,
+    previewHeightCm: 10,
+    previewImageHeightCm: 7.75,
+    previewMeasureWidthCm: 5.1,
+    previewMeasureHeightCm: 8,
+  },
+  {
+    id: "4x5",
+    label: "4x5",
+    widthCm: 4,
+    heightCm: 5,
+    imageHeightCm: 3.6,
+    measureWidthCm: 3.1,
+    measureHeightCm: 4,
+
+    previewWidthCm: 8,
+    previewHeightCm: 10,
+    previewImageHeightCm: 7.2,
+    previewMeasureWidthCm: 6.4,
+    previewMeasureHeightCm: 8,
+  },
+];
+
 interface PolaroidItem {
   id: string;
   photo: string | null;
   caption: string;
   templateId: TemplateId;
   fontStyleId: FontStyleId | null;
+  polaroidSizeId: PolaroidSizeId;
   size: Size;
   align: Align;
   imagePosX: number;
@@ -198,14 +264,19 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
-function newDraft(templateId: TemplateId = "amor"): PolaroidItem {
+function newDraft(
+  templateId: TemplateId = "amor",
+  polaroidSizeId: PolaroidSizeId = "7x10",
+): PolaroidItem {
   const t = templates.find((x) => x.id === templateId)!;
+
   return {
     id: crypto.randomUUID(),
     photo: null,
     caption: "",
     templateId,
     fontStyleId: null,
+    polaroidSizeId,
     size: t.defaultSize,
     align: t.defaultAlign,
     imagePosX: 50,
@@ -233,9 +304,13 @@ function CriarPage() {
   const dragRef = useRef<ImageDragState | null>(null);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
+
   const draftFontStyle = draft.fontStyleId
     ? fontStyles.find((style) => style.id === draft.fontStyleId)
     : null;
+
+  const selectedPolaroidSize =
+    polaroidSizes.find((size) => size.id === draft.polaroidSizeId) ?? polaroidSizes[0];
 
   function pickFile() {
     fileRef.current?.click();
@@ -244,7 +319,9 @@ function CriarPage() {
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
+
     reader.onload = () => {
       setDraft((d) => ({
         ...d,
@@ -252,9 +329,11 @@ function CriarPage() {
         imagePosX: 50,
         imagePosY: 50,
       }));
+
       setStyleWarning("");
       setIsAdjustingImage(false);
     };
+
     reader.readAsDataURL(file);
     e.target.value = "";
   }
@@ -266,6 +345,7 @@ function CriarPage() {
     }
 
     setStyleWarning("");
+
     setDraft((d) => ({
       ...d,
       fontStyleId: style.id,
@@ -275,25 +355,30 @@ function CriarPage() {
 
   function concluir() {
     if (!draft.photo) return;
+
     setSaved((s) => {
       const idx = s.findIndex((x) => x.id === draft.id);
+
       if (idx >= 0) {
         const next = [...s];
         next[idx] = draft;
         return next;
       }
+
       return [...s, draft];
     });
+
     setStyleWarning("");
     setIsAdjustingImage(false);
-    setDraft(newDraft(draft.templateId));
+    setDraft(newDraft(draft.templateId, draft.polaroidSizeId));
   }
 
   function adicionarOutra() {
-    if (draft.photo) concluir();
-    else {
+    if (draft.photo) {
+      concluir();
+    } else {
       setStyleWarning("");
-      setDraft(newDraft(draft.templateId));
+      setDraft(newDraft(draft.templateId, draft.polaroidSizeId));
     }
   }
 
@@ -309,7 +394,9 @@ function CriarPage() {
 
   function onStartImageDrag(e: React.PointerEvent<HTMLDivElement>) {
     if (!isAdjustingImage || !draft.photo) return;
+
     const rect = e.currentTarget.getBoundingClientRect();
+
     dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -319,23 +406,36 @@ function CriarPage() {
       areaWidth: rect.width,
       areaHeight: rect.height,
     };
+
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onMoveImageDrag(e: React.PointerEvent<HTMLDivElement>) {
     const drag = dragRef.current;
+
     if (!isAdjustingImage || !drag || drag.pointerId !== e.pointerId) return;
+
     const deltaX = e.clientX - drag.startX;
     const deltaY = e.clientY - drag.startY;
-    const nextX = clampPercent(drag.startPosX - (deltaX / Math.max(drag.areaWidth, 1)) * 100);
-    const nextY = clampPercent(drag.startPosY - (deltaY / Math.max(drag.areaHeight, 1)) * 100);
+
+    const nextX = clampPercent(
+      drag.startPosX - (deltaX / Math.max(drag.areaWidth, 1)) * 100,
+    );
+
+    const nextY = clampPercent(
+      drag.startPosY - (deltaY / Math.max(drag.areaHeight, 1)) * 100,
+    );
+
     setDraft((d) => ({ ...d, imagePosX: nextX, imagePosY: nextY }));
   }
 
   function onEndImageDrag(e: React.PointerEvent<HTMLDivElement>) {
     const drag = dragRef.current;
+
     if (!drag || drag.pointerId !== e.pointerId) return;
+
     dragRef.current = null;
+
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -346,6 +446,7 @@ function CriarPage() {
       {isAdjustingImage && (
         <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]" />
       )}
+
       {styleWarning && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-6 backdrop-blur-[1px]"
@@ -354,6 +455,7 @@ function CriarPage() {
         >
           <div className="w-full max-w-xs rounded-2xl border border-border bg-paper p-5 text-center shadow-soft">
             <p className="text-sm font-medium text-ink">{styleWarning}</p>
+
             <Button
               type="button"
               onClick={() => setStyleWarning("")}
@@ -377,6 +479,7 @@ function CriarPage() {
                 <div className="max-h-[430px] space-y-2 overflow-y-auto pr-1">
                   {fontStyles.map((style) => {
                     const active = style.id === draft.fontStyleId;
+
                     return (
                       <button
                         key={style.id}
@@ -395,7 +498,13 @@ function CriarPage() {
                             aria-hidden="true"
                           />
                         )}
-                        <p className={cn("w-full whitespace-nowrap text-center text-lg leading-tight text-ink", style.fontClass)}>
+
+                        <p
+                          className={cn(
+                            "w-full whitespace-nowrap text-center text-lg leading-tight text-ink",
+                            style.fontClass,
+                          )}
+                        >
                           {style.sample}
                         </p>
                       </button>
@@ -407,147 +516,186 @@ function CriarPage() {
           </aside>
 
           {/* CENTRO - PREVIEW */}
-{/* CENTRO - PREVIEW */}
-<section className="order-2 lg:order-2 lg:h-full">
-  <div className="leather-card flex h-full flex-col items-center justify-center p-5">
-    <div className="flex w-full max-w-lg flex-col gap-4">
-      <div className="rounded-2xl border border-border/70 bg-cream/80 p-4">
-        <div className="mx-auto grid w-fit grid-cols-[2.75rem_auto] grid-rows-[auto_2rem] items-center justify-center">
-          <div className="flex h-full items-center justify-center pr-3">
-            <div className="relative h-[8.2cm] w-5">
-              <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-muted-foreground/55" />
-              <span className="absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
-              <span className="absolute bottom-0 left-1/2 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">
-                10 cm
-              </span>
-            </div>
-          </div>
+          <section className="order-2 lg:order-2 lg:h-full">
+            <div className="leather-card flex h-full flex-col items-center justify-center p-5">
+              <div className="flex w-full max-w-lg flex-col gap-4">
+                <div className="rounded-2xl border border-border/70 bg-cream/80 p-4">
+                  <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm]">
+                    {/* MEDIDA VERTICAL */}
+                    <div
+                      className="absolute top-0 flex h-[10cm] w-5 items-center justify-center"
+                      style={{
+                        left: `calc(50% - ${selectedPolaroidSize.previewWidthCm / 2}cm - 0.65cm)`,
+                      }}
+                    >
+                      <div
+                        className="relative w-5 transition-all duration-300"
+                        style={{
+                          height: `${selectedPolaroidSize.previewMeasureHeightCm}cm`,
+                        }}
+                      >
+                        <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-muted-foreground/55" />
+                        <span className="absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
+                        <span className="absolute bottom-0 left-1/2 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
 
-          <div className="polaroid box-border h-[10cm] w-[7cm] max-w-full">
-            {draft.photo ? (
-              <div
-                className={cn(
-                  "relative h-[7.8cm] w-full overflow-hidden bg-muted",
-                  tpl.toneClass,
-                  isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
-                  isAdjustingImage ? "z-50" : "",
-                )}
-                onPointerDown={onStartImageDrag}
-                onPointerMove={onMoveImageDrag}
-                onPointerUp={onEndImageDrag}
-                onPointerCancel={onEndImageDrag}
-                onLostPointerCapture={onEndImageDrag}
-              >
-                <img
-                  src={draft.photo}
-                  alt="Sua foto"
-                  className="h-full w-full object-cover"
-                  style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
-                  draggable={false}
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">
+                          {selectedPolaroidSize.heightCm} cm
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* POLAROID CENTRALIZADA */}
+                    <div className="absolute left-1/2 top-0 flex h-[10cm] w-[8cm] -translate-x-1/2 items-center justify-center">
+                      <div
+                        className="polaroid box-border max-w-full transition-all duration-300"
+                        style={{
+                          width: `${selectedPolaroidSize.previewWidthCm}cm`,
+                          height: `${selectedPolaroidSize.previewHeightCm}cm`,
+                        }}
+                      >
+                        {draft.photo ? (
+                          <div
+                            className={cn(
+                              "relative w-full overflow-hidden bg-muted transition-all duration-300",
+                              tpl.toneClass,
+                              isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
+                              isAdjustingImage ? "z-50" : "",
+                            )}
+                            style={{
+                              height: `${selectedPolaroidSize.previewImageHeightCm}cm`,
+                            }}
+                            onPointerDown={onStartImageDrag}
+                            onPointerMove={onMoveImageDrag}
+                            onPointerUp={onEndImageDrag}
+                            onPointerCancel={onEndImageDrag}
+                            onLostPointerCapture={onEndImageDrag}
+                          >
+                            <img
+                              src={draft.photo}
+                              alt="Sua foto"
+                              className="h-full w-full object-cover"
+                              style={{
+                                objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%`,
+                              }}
+                              draggable={false}
+                            />
+
+                            {isAdjustingImage && (
+                              <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={pickFile}
+                            className="flex w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+                            style={{
+                              height: `${selectedPolaroidSize.previewImageHeightCm}cm`,
+                            }}
+                          >
+                            <Upload className="h-7 w-7" strokeWidth={1.5} />
+                            <span className="font-display text-lg">Adicionar foto</span>
+                            <span className="text-xs">JPG ou PNG</span>
+                          </button>
+                        )}
+
+                        <div
+                          className={cn(
+                            "absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-ink/85 leading-tight",
+                            isAdjustingImage ? "z-50" : "",
+                          )}
+                          style={{
+                            top: `calc(0.75rem + ${selectedPolaroidSize.previewImageHeightCm}cm)`,
+                          }}
+                        >
+                          {isAdjustingImage ? (
+                            <Button
+                              type="button"
+                              onClick={() => setIsAdjustingImage(false)}
+                              className="h-10 rounded-xl border border-ink bg-ink px-7 text-sm font-semibold text-paper shadow-polaroid transition-transform hover:bg-ink/90 active:scale-95"
+                            >
+                              Salvar ajuste
+                            </Button>
+                          ) : (
+                            <span
+                              className={cn(
+                                "inline-block w-full max-w-full break-words leading-tight",
+                                alignClass[draft.align],
+                                draftFontStyle?.fontClass,
+                                sizeClass[draft.size],
+                              )}
+                            >
+                              {draft.caption}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* MEDIDA HORIZONTAL */}
+                    <div
+                      className="absolute top-[10.45cm] h-4 transition-all duration-300"
+                      style={{
+                        width: `${selectedPolaroidSize.previewMeasureWidthCm}cm`,
+                        left: `calc(50% - ${selectedPolaroidSize.previewMeasureWidthCm / 2}cm)`,
+                      }}
+                    >
+                      <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-muted-foreground/55" />
+                      <span className="absolute left-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
+                      <span className="absolute right-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
+
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-cream px-2 text-[11px] font-medium text-muted-foreground">
+                        {selectedPolaroidSize.widthCm} cm
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onFile}
+                  className="hidden"
                 />
-                {isAdjustingImage && (
-                  <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
+
+                {draft.photo && !isAdjustingImage && (
+                  <div className="mt-5">
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={pickFile}
+                        className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                      >
+                        Trocar imagem
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAdjustingImage(true)}
+                        className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                      >
+                        Ajustar
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDraft((d) => ({ ...d, photo: null }));
+                          setIsAdjustingImage(false);
+                        }}
+                        className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
-            ) : (
-              <button
-                onClick={pickFile}
-                className="flex h-[7.8cm] w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
-              >
-                <Upload className="h-7 w-7" strokeWidth={1.5} />
-                <span className="font-display text-lg">Adicionar foto</span>
-                <span className="text-xs">JPG ou PNG</span>
-              </button>
-            )}
-
-            <div
-              className={cn(
-                "absolute bottom-0 left-3 right-3 top-[calc(0.75rem+7.8cm)] flex items-center justify-center overflow-hidden px-2 text-center text-ink/85 leading-tight",
-                isAdjustingImage ? "z-50" : "",
-              )}
-            >
-              {isAdjustingImage ? (
-                <Button
-                  type="button"
-                  onClick={() => setIsAdjustingImage(false)}
-                  className="h-10 rounded-xl border border-ink bg-ink px-7 text-sm font-semibold text-paper shadow-polaroid transition-transform hover:bg-ink/90 active:scale-95"
-                >
-                  Salvar ajuste
-                </Button>
-              ) : (
-                <span
-                  className={cn(
-                    "inline-block max-w-full break-words text-center leading-tight",
-                    draftFontStyle?.fontClass,
-                    sizeClass[draft.size],
-                  )}
-                >
-                  {draft.caption}
-                </span>
-              )}
             </div>
-          </div>
-
-          <div />
-
-          <div className="mt-3 flex h-full items-center justify-center">
-            <div className="relative h-4 w-[5.8cm]">
-              <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-muted-foreground/55" />
-              <span className="absolute left-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
-              <span className="absolute right-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-cream px-2 text-[11px] font-medium text-muted-foreground">
-                7 cm
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        onChange={onFile}
-        className="hidden"
-      />
-
-      {draft.photo && !isAdjustingImage && (
-        <div className="mt-5">
-          <div className="flex justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={pickFile}
-              className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-            >
-              Trocar imagem
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAdjustingImage(true)}
-              className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-            >
-              Ajustar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setDraft((d) => ({ ...d, photo: null }));
-                setIsAdjustingImage(false);
-              }}
-              className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-            >
-              Remover
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-</section>
+          </section>
 
           {/* DIREITA - PERSONALIZAR */}
           <aside className="order-3 lg:h-full">
@@ -559,15 +707,19 @@ function CriarPage() {
                   <Label htmlFor="frase" className="text-sm font-medium text-ink">
                     Frase da Polaroid
                   </Label>
+
                   <div className="relative mt-1.5">
                     <Input
                       id="frase"
                       value={draft.caption}
-                      onChange={(e) => setDraft((d) => ({ ...d, caption: e.target.value }))}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, caption: e.target.value }))
+                      }
                       placeholder="Escreva uma frase especial"
                       maxLength={60}
                       className="rounded-lg border-border bg-paper pr-10"
                     />
+
                     {draft.caption.length > 0 && (
                       <button
                         type="button"
@@ -579,13 +731,45 @@ function CriarPage() {
                       </button>
                     )}
                   </div>
+
                   <p className="mt-1 text-right text-xs text-muted-foreground">
                     {draft.caption.length}/60
                   </p>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-ink">Tamanho do texto</Label>
+                  <Label className="text-sm font-medium text-ink">
+                    Tamanho da Polaroid
+                  </Label>
+
+                  <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                    {polaroidSizes.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() =>
+                          setDraft((d) => ({
+                            ...d,
+                            polaroidSizeId: item.id,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-md border px-2 py-2 text-xs transition-colors",
+                          draft.polaroidSizeId === item.id
+                            ? "border-ink bg-ink text-paper"
+                            : "border-border bg-paper text-ink hover:bg-cream",
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-ink">
+                    Tamanho do texto
+                  </Label>
+
                   <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                     {(["sm", "md", "lg"] as Size[]).map((s) => (
                       <button
@@ -606,6 +790,7 @@ function CriarPage() {
 
                 <div>
                   <Label className="text-sm font-medium text-ink">Alinhamento</Label>
+
                   <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                     {(["left", "center", "right"] as Align[]).map((a) => (
                       <button
@@ -633,6 +818,7 @@ function CriarPage() {
                 >
                   Adicionar outra imagem
                 </Button>
+
                 <Button
                   onClick={concluir}
                   disabled={!draft.photo}
@@ -650,12 +836,14 @@ function CriarPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="font-display text-2xl font-medium">Minhas Polaroids</h2>
+
               <p className="mt-1 font-script text-lg text-sepia">
                 {saved.length > 0
                   ? `${saved.length} ${saved.length === 1 ? "memória" : "memórias"} no álbum`
                   : "Seu álbum começa aqui"}
               </p>
             </div>
+
             <Button
               onClick={() => setOpen(true)}
               disabled={saved.length === 0}
@@ -673,37 +861,68 @@ function CriarPage() {
             <div className="mt-6 flex gap-5 overflow-x-auto pb-4">
               {saved.map((item) => {
                 const it = templates.find((t) => t.id === item.templateId)!;
+
                 const itemFontStyle = item.fontStyleId
                   ? fontStyles.find((style) => style.id === item.fontStyleId)
                   : null;
+
+                const itemPolaroidSize =
+                  polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
+                  polaroidSizes[0];
+
+                const thumbnailScale =
+                  itemPolaroidSize.id === "7x10"
+                    ? 0.64
+                    : itemPolaroidSize.id === "5x8"
+                      ? 0.78
+                      : 1;
+
                 return (
                   <div key={item.id} className="group relative shrink-0 w-[170px]">
-                    <div className="h-[243px] w-[170px]">
-                      <div className="origin-top-left scale-[0.64]">
-                        <div className="polaroid box-border h-[10cm] w-[7cm] max-w-none">
+                    <div className="flex h-[243px] w-[170px] items-start justify-center">
+                      <div
+                        className="origin-top-left"
+                        style={{
+                          transform: `scale(${thumbnailScale})`,
+                          transformOrigin: "top left",
+                        }}
+                      >
+                        <div
+                          className="polaroid box-border max-w-none"
+                          style={{
+                            width: `${itemPolaroidSize.widthCm}cm`,
+                            height: `${itemPolaroidSize.heightCm}cm`,
+                          }}
+                        >
                           <div
                             className={cn(
-                              "relative h-[7.8cm] w-full overflow-hidden bg-muted",
+                              "relative w-full overflow-hidden bg-muted",
                               it.toneClass,
                             )}
+                            style={{ height: `${itemPolaroidSize.imageHeightCm}cm` }}
                           >
                             {item.photo && (
                               <img
                                 src={item.photo}
                                 alt=""
                                 className="h-full w-full object-cover"
-                                style={{ objectPosition: `${item.imagePosX}% ${item.imagePosY}%` }}
+                                style={{
+                                  objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                }}
                               />
                             )}
                           </div>
+
                           <p
-                            className={cn(
-                              "absolute bottom-0 left-3 right-3 top-[calc(0.75rem+7.8cm)] flex items-center justify-center overflow-hidden px-2 text-center text-ink/85 leading-tight",
-                            )}
+                            className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-ink/85 leading-tight"
+                            style={{
+                              top: `calc(0.75rem + ${itemPolaroidSize.imageHeightCm}cm)`,
+                            }}
                           >
                             <span
                               className={cn(
-                                "inline-block max-w-full break-words text-center leading-tight",
+                                "inline-block w-full max-w-full break-words leading-tight",
+                                alignClass[item.align],
                                 itemFontStyle?.fontClass,
                                 sizeClass[item.size],
                               )}
@@ -714,6 +933,7 @@ function CriarPage() {
                         </div>
                       </div>
                     </div>
+
                     <div className="absolute inset-x-0 -bottom-2 flex justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         onClick={() => editarSalva(item)}
@@ -722,6 +942,7 @@ function CriarPage() {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
+
                       <button
                         onClick={() => removerSalva(item.id)}
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-paper text-ink shadow-soft hover:bg-cream"
@@ -745,6 +966,7 @@ function CriarPage() {
             <DialogTitle className="font-display text-2xl font-medium text-ink">
               Suas Polaroids estão prontas
             </DialogTitle>
+
             <DialogDescription className="mt-2 text-base leading-relaxed text-muted-foreground">
               Revise suas imagens e libere o download em alta qualidade após o pagamento.
             </DialogDescription>
@@ -759,12 +981,15 @@ function CriarPage() {
                       src={item.photo}
                       alt=""
                       className="h-full w-full object-cover"
-                      style={{ objectPosition: `${item.imagePosX}% ${item.imagePosY}%` }}
+                      style={{
+                        objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                      }}
                     />
                   )}
                 </div>
               </div>
             ))}
+
             {saved.length === 0 && draft.photo && (
               <div className="polaroid !p-1.5 !pb-3 w-20">
                 <div className="aspect-square overflow-hidden bg-muted">
@@ -772,7 +997,9 @@ function CriarPage() {
                     src={draft.photo}
                     alt=""
                     className="h-full w-full object-cover"
-                    style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
+                    style={{
+                      objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -782,6 +1009,7 @@ function CriarPage() {
           <Button className="h-12 w-full rounded-full bg-ink text-base font-medium text-paper hover:bg-ink/90">
             Finalizar e liberar download
           </Button>
+
           <p className="text-center text-xs text-muted-foreground">
             Você só paga depois de visualizar.
           </p>

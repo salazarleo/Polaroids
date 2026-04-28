@@ -124,49 +124,49 @@ const fontStyles: FontStyleDef[] = [
     id: "garet",
     name: "Garet",
     fontClass: "font-garet",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "bebas-neue",
     name: "Bebas Neue",
     fontClass: "font-bebas-neue",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "alice",
     name: "Alice",
     fontClass: "font-alice",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "bree-serif",
     name: "Bree Serif",
     fontClass: "font-bree-serif",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "montaser-arabic",
     name: "Montaser Arabic",
     fontClass: "font-montaser-arabic",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "codec-pro",
     name: "Codec Pro",
     fontClass: "font-codec-pro",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "raleway",
     name: "Raleway",
     fontClass: "font-raleway",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
   {
     id: "dm-sans",
     name: "DM Sans",
     fontClass: "font-dm-sans",
-    sample: "Memórias inesquecíveis",
+    sample: "Memórias especiais",
   },
 ];
 
@@ -175,6 +175,7 @@ interface PolaroidItem {
   photo: string | null;
   caption: string;
   templateId: TemplateId;
+  fontStyleId: FontStyleId | null;
   size: Size;
   align: Align;
   imagePosX: number;
@@ -182,9 +183,9 @@ interface PolaroidItem {
 }
 
 const sizeClass: Record<Size, string> = {
-  sm: "text-3xl",
-  md: "text-4xl",
-  lg: "text-[2.5rem]",
+  sm: "text-lg",
+  md: "text-[1.35rem]",
+  lg: "text-2xl",
 };
 
 const alignClass: Record<Align, string> = {
@@ -204,6 +205,7 @@ function newDraft(templateId: TemplateId = "amor"): PolaroidItem {
     photo: null,
     caption: "",
     templateId,
+    fontStyleId: null,
     size: t.defaultSize,
     align: t.defaultAlign,
     imagePosX: 50,
@@ -225,13 +227,15 @@ function CriarPage() {
   const [draft, setDraft] = useState<PolaroidItem>(() => newDraft());
   const [saved, setSaved] = useState<PolaroidItem[]>([]);
   const [open, setOpen] = useState(false);
-  const [selectedFontStyleId, setSelectedFontStyleId] = useState<FontStyleId>("garet");
+  const [styleWarning, setStyleWarning] = useState("");
   const [isAdjustingImage, setIsAdjustingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
-  const selectedFontStyle = fontStyles.find((style) => style.id === selectedFontStyleId)!;
+  const draftFontStyle = draft.fontStyleId
+    ? fontStyles.find((style) => style.id === draft.fontStyleId)
+    : null;
 
   function pickFile() {
     fileRef.current?.click();
@@ -248,10 +252,25 @@ function CriarPage() {
         imagePosX: 50,
         imagePosY: 50,
       }));
+      setStyleWarning("");
       setIsAdjustingImage(false);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  }
+
+  function selecionarFonte(style: FontStyleDef) {
+    if (!draft.photo) {
+      setStyleWarning("Adicione primeiro uma foto");
+      return;
+    }
+
+    setStyleWarning("");
+    setDraft((d) => ({
+      ...d,
+      fontStyleId: style.id,
+      caption: style.sample,
+    }));
   }
 
   function concluir() {
@@ -265,13 +284,17 @@ function CriarPage() {
       }
       return [...s, draft];
     });
+    setStyleWarning("");
     setIsAdjustingImage(false);
     setDraft(newDraft(draft.templateId));
   }
 
   function adicionarOutra() {
     if (draft.photo) concluir();
-    else setDraft(newDraft(draft.templateId));
+    else {
+      setStyleWarning("");
+      setDraft(newDraft(draft.templateId));
+    }
   }
 
   function editarSalva(item: PolaroidItem) {
@@ -323,6 +346,24 @@ function CriarPage() {
       {isAdjustingImage && (
         <div className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px]" />
       )}
+      {styleWarning && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-6 backdrop-blur-[1px]"
+          role="alertdialog"
+          aria-live="assertive"
+        >
+          <div className="w-full max-w-xs rounded-2xl border border-border bg-paper p-5 text-center shadow-soft">
+            <p className="text-sm font-medium text-ink">{styleWarning}</p>
+            <Button
+              type="button"
+              onClick={() => setStyleWarning("")}
+              className="mt-4 h-10 w-full rounded-full bg-ink text-sm font-medium text-paper hover:bg-ink/90"
+            >
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main className="mx-auto max-w-7xl px-6 py-10">
         <div className="grid items-stretch gap-8 lg:grid-cols-[300px_1fr_300px]">
@@ -335,38 +376,26 @@ function CriarPage() {
               <div className="mt-5 rounded-2xl border border-border/70 bg-paper/70 p-2">
                 <div className="max-h-[430px] space-y-2 overflow-y-auto pr-1">
                   {fontStyles.map((style) => {
-                    const active = style.id === selectedFontStyleId;
+                    const active = style.id === draft.fontStyleId;
                     return (
                       <button
                         key={style.id}
-                        onClick={() => setSelectedFontStyleId(style.id)}
+                        onClick={() => selecionarFonte(style)}
                         className={cn(
-                          "w-full rounded-xl border px-3 py-2 text-left transition-all",
+                          "relative w-full rounded-xl border px-3 py-3 text-center transition-all",
                           active
                             ? "border-ink/85 bg-cream/70 shadow-soft"
                             : "border-border/70 bg-paper hover:border-ink/40 hover:bg-cream/60",
                         )}
                         aria-pressed={active}
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                            AaBbCc
-                          </p>
+                        {active && (
                           <span
-                            className={cn(
-                              "rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                              active
-                                ? "border-ink/80 bg-ink text-paper"
-                                : "border-border/80 bg-paper text-muted-foreground",
-                            )}
-                          >
-                            {active ? "Selecionado" : "Selecionar"}
-                          </span>
-                        </div>
-                        <p className={cn("mt-2 text-xl leading-none text-ink", style.fontClass)}>
-                          {style.name}
-                        </p>
-                        <p className={cn("mt-1 text-base leading-none text-ink/75", style.fontClass)}>
+                            className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border border-ink bg-paper shadow-[inset_0_0_0_1px_var(--color-ink)]"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <p className={cn("w-full whitespace-nowrap text-center text-lg leading-tight text-ink", style.fontClass)}>
                           {style.sample}
                         </p>
                       </button>
@@ -378,123 +407,147 @@ function CriarPage() {
           </aside>
 
           {/* CENTRO - PREVIEW */}
-          <section className="order-2 lg:order-2 lg:h-full">
-            <div className="leather-card flex h-full flex-col items-center justify-center p-5">
-              <div className="flex w-full max-w-lg flex-col gap-4">
-                <div className="rounded-2xl border border-border/70 bg-cream/80 p-4">
-                  <div className="polaroid mx-auto box-border h-[10cm] w-[7cm] max-w-full">
-                    {draft.photo ? (
-                      <div
-                        className={cn(
-                          "relative h-[7.8cm] w-full overflow-hidden bg-muted",
-                          tpl.toneClass,
-                          isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
-                          isAdjustingImage ? "z-50" : "",
-                        )}
-                        onPointerDown={onStartImageDrag}
-                        onPointerMove={onMoveImageDrag}
-                        onPointerUp={onEndImageDrag}
-                        onPointerCancel={onEndImageDrag}
-                        onLostPointerCapture={onEndImageDrag}
-                      >
-                        <img
-                          src={draft.photo}
-                          alt="Sua foto"
-                          className="h-full w-full object-cover"
-                          style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
-                          draggable={false}
-                        />
-                        {isAdjustingImage && (
-                          <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
-                        )}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={pickFile}
-                        className="flex h-[7.8cm] w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
-                      >
-                        <Upload className="h-7 w-7" strokeWidth={1.5} />
-                        <span className="font-display text-lg">Adicionar foto</span>
-                        <span className="text-xs">JPG ou PNG</span>
-                      </button>
-                    )}
+{/* CENTRO - PREVIEW */}
+<section className="order-2 lg:order-2 lg:h-full">
+  <div className="leather-card flex h-full flex-col items-center justify-center p-5">
+    <div className="flex w-full max-w-lg flex-col gap-4">
+      <div className="rounded-2xl border border-border/70 bg-cream/80 p-4">
+        <div className="mx-auto grid w-fit grid-cols-[2.75rem_auto] grid-rows-[auto_2rem] items-center justify-center">
+          <div className="flex h-full items-center justify-center pr-3">
+            <div className="relative h-[8.2cm] w-5">
+              <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-muted-foreground/55" />
+              <span className="absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
+              <span className="absolute bottom-0 left-1/2 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">
+                10 cm
+              </span>
+            </div>
+          </div>
 
-                    <p
-                      className={cn(
-                        "mt-1 flex h-[3rem] items-center overflow-hidden px-2 text-ink/85 leading-none",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "block w-full",
-                          selectedFontStyle.fontClass,
-                          sizeClass[draft.size],
-                          alignClass[draft.align],
-                        )}
-                      >
-                        {draft.caption}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={onFile}
-                  className="hidden"
+          <div className="polaroid box-border h-[10cm] w-[7cm] max-w-full">
+            {draft.photo ? (
+              <div
+                className={cn(
+                  "relative h-[7.8cm] w-full overflow-hidden bg-muted",
+                  tpl.toneClass,
+                  isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
+                  isAdjustingImage ? "z-50" : "",
+                )}
+                onPointerDown={onStartImageDrag}
+                onPointerMove={onMoveImageDrag}
+                onPointerUp={onEndImageDrag}
+                onPointerCancel={onEndImageDrag}
+                onLostPointerCapture={onEndImageDrag}
+              >
+                <img
+                  src={draft.photo}
+                  alt="Sua foto"
+                  className="h-full w-full object-cover"
+                  style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
+                  draggable={false}
                 />
-
-                {draft.photo && (
-                  <div className="mt-5">
-                    {isAdjustingImage ? (
-                      <div className="relative z-50 flex justify-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsAdjustingImage(false)}
-                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-                        >
-                          Salvar ajuste
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex justify-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={pickFile}
-                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-                        >
-                          Trocar imagem
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsAdjustingImage(true)}
-                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-                        >
-                          Ajustar
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setDraft((d) => ({ ...d, photo: null }));
-                            setIsAdjustingImage(false);
-                          }}
-                          className="rounded-full border-border bg-paper text-ink hover:bg-cream"
-                        >
-                          Remover
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                {isAdjustingImage && (
+                  <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
                 )}
               </div>
+            ) : (
+              <button
+                onClick={pickFile}
+                className="flex h-[7.8cm] w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <Upload className="h-7 w-7" strokeWidth={1.5} />
+                <span className="font-display text-lg">Adicionar foto</span>
+                <span className="text-xs">JPG ou PNG</span>
+              </button>
+            )}
+
+            <div
+              className={cn(
+                "absolute bottom-0 left-3 right-3 top-[calc(0.75rem+7.8cm)] flex items-center justify-center overflow-hidden px-2 text-center text-ink/85 leading-tight",
+                isAdjustingImage ? "z-50" : "",
+              )}
+            >
+              {isAdjustingImage ? (
+                <Button
+                  type="button"
+                  onClick={() => setIsAdjustingImage(false)}
+                  className="h-10 rounded-xl border border-ink bg-ink px-7 text-sm font-semibold text-paper shadow-polaroid transition-transform hover:bg-ink/90 active:scale-95"
+                >
+                  Salvar ajuste
+                </Button>
+              ) : (
+                <span
+                  className={cn(
+                    "inline-block max-w-full break-words text-center leading-tight",
+                    draftFontStyle?.fontClass,
+                    sizeClass[draft.size],
+                  )}
+                >
+                  {draft.caption}
+                </span>
+              )}
             </div>
-          </section>
+          </div>
+
+          <div />
+
+          <div className="mt-3 flex h-full items-center justify-center">
+            <div className="relative h-4 w-[5.8cm]">
+              <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-muted-foreground/55" />
+              <span className="absolute left-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
+              <span className="absolute right-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-cream px-2 text-[11px] font-medium text-muted-foreground">
+                7 cm
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        onChange={onFile}
+        className="hidden"
+      />
+
+      {draft.photo && !isAdjustingImage && (
+        <div className="mt-5">
+          <div className="flex justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={pickFile}
+              className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+            >
+              Trocar imagem
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAdjustingImage(true)}
+              className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+            >
+              Ajustar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDraft((d) => ({ ...d, photo: null }));
+                setIsAdjustingImage(false);
+              }}
+              className="rounded-full border-border bg-paper text-ink hover:bg-cream"
+            >
+              Remover
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</section>
 
           {/* DIREITA - PERSONALIZAR */}
           <aside className="order-3 lg:h-full">
@@ -574,18 +627,18 @@ function CriarPage() {
 
               <div className="mt-7 space-y-2.5">
                 <Button
-                  onClick={concluir}
-                  disabled={!draft.photo}
-                  className="h-11 w-full rounded-full bg-ink text-sm font-medium text-paper hover:bg-ink/90"
-                >
-                  Concluir Polaroid
-                </Button>
-                <Button
                   onClick={adicionarOutra}
                   variant="outline"
                   className="h-11 w-full rounded-full border-border bg-paper text-sm font-medium text-ink hover:bg-cream"
                 >
                   Adicionar outra imagem
+                </Button>
+                <Button
+                  onClick={concluir}
+                  disabled={!draft.photo}
+                  className="h-11 w-full rounded-full bg-ink text-sm font-medium text-paper hover:bg-ink/90"
+                >
+                  Concluir Polaroid
                 </Button>
               </div>
             </div>
@@ -620,6 +673,9 @@ function CriarPage() {
             <div className="mt-6 flex gap-5 overflow-x-auto pb-4">
               {saved.map((item) => {
                 const it = templates.find((t) => t.id === item.templateId)!;
+                const itemFontStyle = item.fontStyleId
+                  ? fontStyles.find((style) => style.id === item.fontStyleId)
+                  : null;
                 return (
                   <div key={item.id} className="group relative shrink-0 w-[170px]">
                     <div className="h-[243px] w-[170px]">
@@ -642,15 +698,14 @@ function CriarPage() {
                           </div>
                           <p
                             className={cn(
-                              "mt-1 flex h-[3rem] items-center overflow-hidden px-2 text-ink/85 leading-none",
+                              "absolute bottom-0 left-3 right-3 top-[calc(0.75rem+7.8cm)] flex items-center justify-center overflow-hidden px-2 text-center text-ink/85 leading-tight",
                             )}
                           >
                             <span
                               className={cn(
-                                "block w-full",
-                                selectedFontStyle.fontClass,
+                                "inline-block max-w-full break-words text-center leading-tight",
+                                itemFontStyle?.fontClass,
                                 sizeClass[item.size],
-                                alignClass[item.align],
                               )}
                             >
                               {item.caption || " "}

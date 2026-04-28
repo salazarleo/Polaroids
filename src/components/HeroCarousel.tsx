@@ -27,7 +27,7 @@ export function HeroCarousel() {
     <div className="relative mx-auto w-full max-w-6xl px-2">
       <Carousel
         opts={{ loop: true, align: "start", slidesToScroll: 1, duration: 35 }}
-        className="w-full pb-8"
+        className="w-full pb-4"
       >
         <CarouselContent className="-ml-3">
           {slides.map((s, i) => (
@@ -38,7 +38,7 @@ export function HeroCarousel() {
                   alt={s.alt}
                   className="max-w-[248px] !rounded-xl !bg-black !p-1.5 border border-white/10 overflow-hidden after:content-none"
                   imageWrapperClassName="aspect-[4/5] rounded-[10px] bg-black"
-                  imageClassName="object-contain scale-120 hover:scale-[1.28]"
+                  imageClassName="object-contain scale-140 hover:scale-[1.50]"
                   eager={i < 2}
                 />
               </div>

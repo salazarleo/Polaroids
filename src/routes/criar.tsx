@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Camera, Upload, X, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, X, Pencil, Trash2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import t1 from "../assets/template-1.png";
 import t2 from "../assets/template-2.png";
@@ -40,27 +40,134 @@ export const Route = createFileRoute("/criar")({
 type TemplateId = "amor" | "viagem" | "familia" | "carta" | "minimalista" | "album";
 type Size = "sm" | "md" | "lg";
 type Align = "left" | "center" | "right";
+type FontStyleId =
+  | "garet"
+  | "bebas-neue"
+  | "alice"
+  | "bree-serif"
+  | "montaser-arabic"
+  | "codec-pro"
+  | "raleway"
+  | "dm-sans";
 
 interface TemplateDef {
   id: TemplateId;
   name: string;
   thumb: string;
-  fontClass: string;
   defaultSize: Size;
   defaultAlign: Align;
   toneClass: string;
 }
 
-const CAPTION_FONT_CLASS = "font-script";
-const CAPTION_DEFAULT_SIZE: Size = "md";
+interface FontStyleDef {
+  id: FontStyleId;
+  name: string;
+  fontClass: string;
+  sample: string;
+}
+
+const DEFAULT_CAPTION_SIZE: Size = "md";
 
 const templates: TemplateDef[] = [
-  { id: "amor", name: "Amor antigo", thumb: t1, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "" },
-  { id: "viagem", name: "Viagem de verão", thumb: t2, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "left", toneClass: "" },
-  { id: "familia", name: "Família", thumb: t3, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "" },
-  { id: "carta", name: "Carta curta", thumb: t4, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "left", toneClass: "" },
-  { id: "minimalista", name: "Minimalista", thumb: t2, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "" },
-  { id: "album", name: "Álbum retrô", thumb: t1, fontClass: CAPTION_FONT_CLASS, defaultSize: CAPTION_DEFAULT_SIZE, defaultAlign: "center", toneClass: "sepia-[0.15]" },
+  {
+    id: "amor",
+    name: "Amor antigo",
+    thumb: t1,
+    defaultSize: DEFAULT_CAPTION_SIZE,
+    defaultAlign: "center",
+    toneClass: "",
+  },
+  {
+    id: "viagem",
+    name: "Viagem de verão",
+    thumb: t2,
+    defaultSize: DEFAULT_CAPTION_SIZE,
+    defaultAlign: "left",
+    toneClass: "",
+  },
+  {
+    id: "familia",
+    name: "Família",
+    thumb: t3,
+    defaultSize: DEFAULT_CAPTION_SIZE,
+    defaultAlign: "center",
+    toneClass: "",
+  },
+  {
+    id: "carta",
+    name: "Carta curta",
+    thumb: t4,
+    defaultSize: DEFAULT_CAPTION_SIZE,
+    defaultAlign: "left",
+    toneClass: "",
+  },
+  {
+    id: "minimalista",
+    name: "Minimalista",
+    thumb: t2,
+    defaultSize: DEFAULT_CAPTION_SIZE,
+    defaultAlign: "center",
+    toneClass: "",
+  },
+  {
+    id: "album",
+    name: "Álbum retrô",
+    thumb: t1,
+    defaultSize: DEFAULT_CAPTION_SIZE,
+    defaultAlign: "center",
+    toneClass: "sepia-[0.15]",
+  },
+];
+
+const fontStyles: FontStyleDef[] = [
+  {
+    id: "garet",
+    name: "Garet",
+    fontClass: "font-garet",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "bebas-neue",
+    name: "Bebas Neue",
+    fontClass: "font-bebas-neue",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "alice",
+    name: "Alice",
+    fontClass: "font-alice",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "bree-serif",
+    name: "Bree Serif",
+    fontClass: "font-bree-serif",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "montaser-arabic",
+    name: "Montaser Arabic",
+    fontClass: "font-montaser-arabic",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "codec-pro",
+    name: "Codec Pro",
+    fontClass: "font-codec-pro",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "raleway",
+    name: "Raleway",
+    fontClass: "font-raleway",
+    sample: "Memórias inesquecíveis",
+  },
+  {
+    id: "dm-sans",
+    name: "DM Sans",
+    fontClass: "font-dm-sans",
+    sample: "Memórias inesquecíveis",
+  },
 ];
 
 interface PolaroidItem {
@@ -118,16 +225,13 @@ function CriarPage() {
   const [draft, setDraft] = useState<PolaroidItem>(() => newDraft());
   const [saved, setSaved] = useState<PolaroidItem[]>([]);
   const [open, setOpen] = useState(false);
-  const [page, setPage] = useState(0);
+  const [selectedFontStyleId, setSelectedFontStyleId] = useState<FontStyleId>("garet");
   const [isAdjustingImage, setIsAdjustingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
 
-  const perPage = 4;
-  const totalPages = Math.ceil(templates.length / perPage);
-  const visibleTemplates = templates.slice(page * perPage, page * perPage + perPage);
-
   const tpl = templates.find((t) => t.id === draft.templateId)!;
+  const selectedFontStyle = fontStyles.find((style) => style.id === selectedFontStyleId)!;
 
   function pickFile() {
     fileRef.current?.click();
@@ -148,11 +252,6 @@ function CriarPage() {
     };
     reader.readAsDataURL(file);
     e.target.value = "";
-  }
-
-  function selectTemplate(id: TemplateId) {
-    const t = templates.find((x) => x.id === id)!;
-    setDraft((d) => ({ ...d, templateId: id, size: d.size ?? t.defaultSize, align: d.align ?? t.defaultAlign }));
   }
 
   function concluir() {
@@ -228,124 +327,115 @@ function CriarPage() {
       <main className="mx-auto max-w-7xl px-6 py-10">
         <div className="grid items-stretch gap-8 lg:grid-cols-[300px_1fr_300px]">
           {/* ESQUERDA - MODELOS */}
-          <aside className="order-2 lg:order-1 lg:h-full">
+          <aside className="order-1 lg:order-1 lg:h-full">
             <div className="leather-card flex h-full flex-col p-5">
               <h2 className="font-display text-xl font-medium">Modelos prontos</h2>
               <p className="mt-1 font-script text-lg text-sepia">Escolha um estilo</p>
 
-              <div className="mt-5 flex-1">
-                <div className="grid min-h-[340px] grid-cols-2 content-start gap-3">
-                  {visibleTemplates.map((t) => {
-                    const active = t.id === draft.templateId;
+              <div className="mt-5 rounded-2xl border border-border/70 bg-paper/70 p-2">
+                <div className="max-h-[430px] space-y-2 overflow-y-auto pr-1">
+                  {fontStyles.map((style) => {
+                    const active = style.id === selectedFontStyleId;
                     return (
                       <button
-                        key={t.id}
-                        onClick={() => selectTemplate(t.id)}
+                        key={style.id}
+                        onClick={() => setSelectedFontStyleId(style.id)}
                         className={cn(
-                          "group rounded-lg border bg-paper p-2 text-left shadow-soft transition-all",
+                          "w-full rounded-xl border px-3 py-2 text-left transition-all",
                           active
-                            ? "border-ink ring-2 ring-ink/80"
-                            : "border-border hover:border-ink/40 hover:shadow-md",
+                            ? "border-ink/85 bg-cream/70 shadow-soft"
+                            : "border-border/70 bg-paper hover:border-ink/40 hover:bg-cream/60",
                         )}
+                        aria-pressed={active}
                       >
-                        <div className="polaroid !p-1.5 !pb-4">
-                          <div className="aspect-square overflow-hidden bg-muted">
-                            <img
-                              src={t.thumb}
-                              alt={t.name}
-                              loading="lazy"
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                            AaBbCc
+                          </p>
+                          <span
+                            className={cn(
+                              "rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                              active
+                                ? "border-ink/80 bg-ink text-paper"
+                                : "border-border/80 bg-paper text-muted-foreground",
+                            )}
+                          >
+                            {active ? "Selecionado" : "Selecionar"}
+                          </span>
                         </div>
-                        <p className="mt-2 px-1 text-center text-xs font-medium text-ink">
-                          {t.name}
+                        <p className={cn("mt-2 text-xl leading-none text-ink", style.fontClass)}>
+                          {style.name}
+                        </p>
+                        <p className={cn("mt-1 text-base leading-none text-ink/75", style.fontClass)}>
+                          {style.sample}
                         </p>
                       </button>
                     );
                   })}
                 </div>
               </div>
-
-              <div className="mt-5 flex items-center justify-between gap-2 border-t border-border/60 pt-4">
-                <button
-                  onClick={() => setPage((p) => (p - 1 + totalPages) % totalPages)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-paper text-ink shadow-soft transition-colors hover:bg-cream"
-                  aria-label="Modelos anteriores"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="font-script text-base text-sepia">
-                  {page + 1} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => (p + 1) % totalPages)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-paper text-ink shadow-soft transition-colors hover:bg-cream"
-                  aria-label="Próximos modelos"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
             </div>
           </aside>
 
           {/* CENTRO - PREVIEW */}
-          <section className="order-1 lg:order-2 lg:h-full">
+          <section className="order-2 lg:order-2 lg:h-full">
             <div className="leather-card flex h-full flex-col items-center justify-center p-5">
-              <div className="flex w-full max-w-sm flex-col lg:max-w-md">
-                <div className="polaroid mx-auto box-border h-[10cm] w-[7cm] max-w-full">
-                  {draft.photo ? (
-                    <div
-                      className={cn(
-                        "relative h-[7.8cm] w-full overflow-hidden bg-muted",
-                        tpl.toneClass,
-                        isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
-                        isAdjustingImage ? "z-50" : "",
-                      )}
-                      onPointerDown={onStartImageDrag}
-                      onPointerMove={onMoveImageDrag}
-                      onPointerUp={onEndImageDrag}
-                      onPointerCancel={onEndImageDrag}
-                      onLostPointerCapture={onEndImageDrag}
-                    >
-                      <img
-                        src={draft.photo}
-                        alt="Sua foto"
-                        className="h-full w-full object-cover"
-                        style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
-                        draggable={false}
-                      />
-                      {isAdjustingImage && (
-                        <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={pickFile}
-                      className="flex h-[7.8cm] w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
-                    >
-                      <Upload className="h-7 w-7" strokeWidth={1.5} />
-                      <span className="font-display text-lg">Adicionar foto</span>
-                      <span className="text-xs">JPG ou PNG</span>
-                    </button>
-                  )}
-
-                  <p
-                    className={cn(
-                      "mt-1 flex h-[3rem] items-center overflow-hidden px-2 text-ink/85 leading-none",
+              <div className="flex w-full max-w-lg flex-col gap-4">
+                <div className="rounded-2xl border border-border/70 bg-cream/80 p-4">
+                  <div className="polaroid mx-auto box-border h-[10cm] w-[7cm] max-w-full">
+                    {draft.photo ? (
+                      <div
+                        className={cn(
+                          "relative h-[7.8cm] w-full overflow-hidden bg-muted",
+                          tpl.toneClass,
+                          isAdjustingImage ? "cursor-grab active:cursor-grabbing" : "",
+                          isAdjustingImage ? "z-50" : "",
+                        )}
+                        onPointerDown={onStartImageDrag}
+                        onPointerMove={onMoveImageDrag}
+                        onPointerUp={onEndImageDrag}
+                        onPointerCancel={onEndImageDrag}
+                        onLostPointerCapture={onEndImageDrag}
+                      >
+                        <img
+                          src={draft.photo}
+                          alt="Sua foto"
+                          className="h-full w-full object-cover"
+                          style={{ objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%` }}
+                          draggable={false}
+                        />
+                        {isAdjustingImage && (
+                          <div className="pointer-events-none absolute inset-0 border border-dashed border-ink/35" />
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={pickFile}
+                        className="flex h-[7.8cm] w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+                      >
+                        <Upload className="h-7 w-7" strokeWidth={1.5} />
+                        <span className="font-display text-lg">Adicionar foto</span>
+                        <span className="text-xs">JPG ou PNG</span>
+                      </button>
                     )}
-                  >
-                    <span
+
+                    <p
                       className={cn(
-                        "block w-full",
-                        tpl.fontClass,
-                        sizeClass[draft.size],
-                        alignClass[draft.align],
+                        "mt-1 flex h-[3rem] items-center overflow-hidden px-2 text-ink/85 leading-none",
                       )}
                     >
-                      {draft.caption}
-                    </span>
-                  </p>
+                      <span
+                        className={cn(
+                          "block w-full",
+                          selectedFontStyle.fontClass,
+                          sizeClass[draft.size],
+                          alignClass[draft.align],
+                        )}
+                      >
+                        {draft.caption}
+                      </span>
+                    </p>
+                  </div>
                 </div>
 
                 <input
@@ -532,27 +622,42 @@ function CriarPage() {
                 const it = templates.find((t) => t.id === item.templateId)!;
                 return (
                   <div key={item.id} className="group relative shrink-0 w-[170px]">
-                    <div className="polaroid">
-                      <div className="aspect-square overflow-hidden bg-muted">
-                        {item.photo && (
-                          <img
-                            src={item.photo}
-                            alt=""
-                            className="h-full w-full object-cover"
-                            style={{ objectPosition: `${item.imagePosX}% ${item.imagePosY}%` }}
-                          />
-                        )}
+                    <div className="h-[243px] w-[170px]">
+                      <div className="origin-top-left scale-[0.64]">
+                        <div className="polaroid box-border h-[10cm] w-[7cm] max-w-none">
+                          <div
+                            className={cn(
+                              "relative h-[7.8cm] w-full overflow-hidden bg-muted",
+                              it.toneClass,
+                            )}
+                          >
+                            {item.photo && (
+                              <img
+                                src={item.photo}
+                                alt=""
+                                className="h-full w-full object-cover"
+                                style={{ objectPosition: `${item.imagePosX}% ${item.imagePosY}%` }}
+                              />
+                            )}
+                          </div>
+                          <p
+                            className={cn(
+                              "mt-1 flex h-[3rem] items-center overflow-hidden px-2 text-ink/85 leading-none",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "block w-full",
+                                selectedFontStyle.fontClass,
+                                sizeClass[item.size],
+                                alignClass[item.align],
+                              )}
+                            >
+                              {item.caption || " "}
+                            </span>
+                          </p>
+                        </div>
                       </div>
-                      <p
-                        className={cn(
-                          "mt-2 px-1 leading-tight text-ink/85",
-                          it.fontClass,
-                          item.size === "sm" ? "text-xs" : item.size === "md" ? "text-sm" : "text-base",
-                          alignClass[item.align],
-                        )}
-                      >
-                        {item.caption || " "}
-                      </p>
                     </div>
                     <div className="absolute inset-x-0 -bottom-2 flex justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                       <button

@@ -521,6 +521,15 @@ function CriarPage() {
     setDraft(newDraft(draft.templateId, draft.polaroidSizeId));
   }
 
+  function finalizarPedido() {
+    if (saved.length === 0) {
+      setStyleWarning("Adicione pelo menos uma Polaroid em Minhas Polaroids");
+      return;
+    }
+
+    setOpen(true);
+  }
+
   function editarSalva(item: PolaroidItem) {
     setDraft({ ...item });
     setIsAdjustingImage(false);
@@ -656,8 +665,7 @@ function CriarPage() {
 
             <Button
               size="sm"
-              onClick={() => setOpen(true)}
-              disabled={saved.length === 0 && !draft.photo}
+              onClick={finalizarPedido}
               className="group mt-2 h-8 w-full rounded-full border border-transparent bg-[#111217] text-xs font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
             >
               <span className="transition-colors group-hover:text-[#c8a36c]">Finalizar</span>
@@ -717,8 +725,7 @@ function CriarPage() {
               </div>
 
               <Button
-                onClick={() => setOpen(true)}
-                disabled={saved.length === 0 && !draft.photo}
+                onClick={finalizarPedido}
                 className="group col-start-3 h-10 self-center justify-self-end rounded-md border border-transparent bg-[#111217] px-6 py-2 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
               >
                 <span className="transition-colors group-hover:text-[#c8a36c]">Finalizar</span>
@@ -1344,20 +1351,6 @@ function CriarPage() {
               </div>
             ))}
 
-            {saved.length === 0 && draft.photo && (
-              <div className="polaroid !p-1.5 !pb-3 w-20">
-                <div className="aspect-square overflow-hidden bg-muted">
-                  <img
-                    src={draft.photo}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    style={{
-                      objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
           <Button className="h-12 w-full rounded-full bg-ink text-base font-medium text-paper hover:bg-ink/90">

@@ -658,9 +658,9 @@ function CriarPage() {
               size="sm"
               onClick={() => setOpen(true)}
               disabled={saved.length === 0 && !draft.photo}
-              className="mt-2 h-8 w-full rounded-full bg-ink text-xs font-medium text-paper hover:bg-ink/90"
+              className="group mt-2 h-8 w-full rounded-full border border-transparent bg-[#111217] text-xs font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
             >
-              Finalizar
+              <span className="transition-colors group-hover:text-[#c8a36c]">Finalizar</span>
             </Button>
           </div>
 
@@ -719,9 +719,9 @@ function CriarPage() {
               <Button
                 onClick={() => setOpen(true)}
                 disabled={saved.length === 0 && !draft.photo}
-                className="col-start-3 h-10 self-center justify-self-end rounded-md border  bg-[#967441] px-6 py-2 text-sm font-medium text-white shadow-none hover:bg-[#c8a36c]"
+                className="group col-start-3 h-10 self-center justify-self-end rounded-md border border-transparent bg-[#111217] px-6 py-2 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
               >
-                Finalizar
+                <span className="transition-colors group-hover:text-[#c8a36c]">Finalizar</span>
               </Button>
             </div>
           </div>
@@ -958,9 +958,14 @@ function CriarPage() {
                                 <Button
                                   type="button"
                                   onClick={() => setIsAdjustingImage(false)}
-                                  className="h-10 rounded-xl bg-ink px-7 text-sm font-semibold text-paper shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-transform hover:bg-ink/90 active:scale-95"
+                                  className="group h-9 w-[92px] rounded-md border border-transparent bg-[#111217] px-0 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                                  style={{
+                                    transform: `scale(${1 / selectedPolaroidSize.previewScale})`,
+                                  }}
                                 >
-                                  Pronto
+                                  <span className="transition-colors group-hover:text-[#c8a36c]">
+                                    Pronto
+                                  </span>
                                 </Button>
                               ) : mobileCaptionEditing ? (
                                 <input
@@ -1118,7 +1123,13 @@ function CriarPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            setDraft((d) => ({ ...d, photo: null }));
+                            setDraft((d) => ({
+                              ...d,
+                              photo: null,
+                              caption: "",
+                              fontStyleId: null,
+                              fontWeightId: "regular",
+                            }));
                             setIsAdjustingImage(false);
                             setMobileCaptionEditing(false);
                           }}

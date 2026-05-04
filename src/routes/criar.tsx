@@ -279,7 +279,7 @@ const polaroidSizes: PolaroidSizeDef[] = [
     previewImageHeightCm: 7.8,
     previewMeasureWidthCm: 5.8,
     previewMeasureHeightCm: 8.2,
-    previewScale: 1,
+    previewScale: 0.82,
     galleryScale: 0.36,
   },
   {
@@ -296,7 +296,7 @@ const polaroidSizes: PolaroidSizeDef[] = [
     previewImageHeightCm: 6.2,
     previewMeasureWidthCm: 4.1,
     previewMeasureHeightCm: 6.4,
-    previewScale: 1.18,
+    previewScale: 1.05,
     galleryScale: 0.48,
   },
   {
@@ -593,9 +593,9 @@ function CriarPage() {
             <Button
               type="button"
               onClick={() => setStyleWarning("")}
-              className="mt-4 h-10 w-full rounded-full bg-ink text-sm font-medium text-paper hover:bg-ink/90"
+              className="group mt-4 h-9 w-[92px] rounded-md border border-transparent bg-[#111217] px-0 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
             >
-              Confirmar
+              <span className="transition-colors group-hover:text-[#c8a36c]">Confirmar</span>
             </Button>
           </div>
         </div>

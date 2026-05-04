@@ -225,6 +225,10 @@
     border-radius: 1rem;
   }
 
+  .criar-page button:not(:disabled) {
+    cursor: pointer;
+  }
+
   /* Tape decoration */
   .tape {
     position: absolute;

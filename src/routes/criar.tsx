@@ -448,6 +448,8 @@ function CriarPage() {
     0,
     (previewStageHeightCm - selectedPolaroidSize.previewHeightCm) / 2,
   );
+  const uploadPlaceholderScale = 1 / selectedPolaroidSize.previewScale;
+  const measurementLabelFontSizePx = 11 / selectedPolaroidSize.previewScale;
 
   function pickFile() {
     fileRef.current?.click();
@@ -482,6 +484,11 @@ function CriarPage() {
       return;
     }
 
+    if (!draft.caption.trim()) {
+      setStyleWarning("Adicione primeiro um texto");
+      return;
+    }
+
     setStyleWarning("");
     setMobileStylesOpen(false);
     setMobileCaptionEditing(false);
@@ -490,7 +497,6 @@ function CriarPage() {
       ...d,
       fontStyleId: style.id,
       fontWeightId: "regular",
-      caption: d.caption || style.sample,
     }));
   }
 
@@ -572,7 +578,7 @@ function CriarPage() {
   }
 
   return (
-    <div className="min-h-screen lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
+    <div className="criar-page min-h-screen lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
       {isAdjustingImage && <div className="fixed inset-0 z-40 bg-black/55" />}
 
       {styleWarning && (
@@ -654,14 +660,14 @@ function CriarPage() {
               disabled={saved.length === 0 && !draft.photo}
               className="mt-2 h-8 w-full rounded-full bg-ink text-xs font-medium text-paper hover:bg-ink/90"
             >
-              Salvar e finalizar
+              Finalizar
             </Button>
           </div>
 
           {/* DESKTOP - PERSONALIZAR */}
           <div className="hidden lg:block">
-            <div className="flex justify-center">
-              <div className="grid w-full max-w-3xl grid-cols-[220px_220px_auto] items-end justify-center gap-4">
+            <div className="grid w-full grid-cols-[1fr_auto_1fr] items-end gap-4">
+              <div className="col-start-2 grid grid-cols-[220px_220px] items-end justify-center gap-4">
                 <div>
                   <Label className="text-sm font-medium text-ink">Tamanho da Polaroid</Label>
 
@@ -708,15 +714,15 @@ function CriarPage() {
                     ))}
                   </div>
                 </div>
-
-                <Button
-                  onClick={() => setOpen(true)}
-                  disabled={saved.length === 0 && !draft.photo}
-                  className="h-10 rounded-full bg-ink px-6 text-sm font-medium text-paper hover:bg-ink/90"
-                >
-                  Salvar e finalizar
-                </Button>
               </div>
+
+              <Button
+                onClick={() => setOpen(true)}
+                disabled={saved.length === 0 && !draft.photo}
+                className="col-start-3 h-10 self-center justify-self-end rounded-md border  bg-[#967441] px-6 py-2 text-sm font-medium text-white shadow-none hover:bg-[#c8a36c]"
+              >
+                Finalizar
+              </Button>
             </div>
           </div>
         </section>
@@ -869,7 +875,10 @@ function CriarPage() {
                             <span className="absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
                             <span className="absolute bottom-0 left-1/2 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
 
-                            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">
+                            <span
+                              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]"
+                              style={{ fontSize: `${measurementLabelFontSizePx}px` }}
+                            >
                               {selectedPolaroidSize.heightCm} cm
                             </span>
                           </div>
@@ -917,14 +926,22 @@ function CriarPage() {
                             ) : (
                               <button
                                 onClick={pickFile}
-                                className="flex w-full flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+                                className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
                                 style={{
                                   height: `${selectedPolaroidSize.previewImageHeightCm}cm`,
                                 }}
                               >
-                                <Upload className="h-7 w-7" strokeWidth={1.5} />
-                                <span className="font-display text-lg">Adicionar foto</span>
-                                <span className="text-xs">JPG ou PNG</span>
+                                <span
+                                  className="flex flex-col items-center justify-center gap-3"
+                                  style={{
+                                    transform: `scale(${uploadPlaceholderScale})`,
+                                    transformOrigin: "center",
+                                  }}
+                                >
+                                  <Upload className="h-7 w-7" strokeWidth={1.5} />
+                                  <span className="font-display text-lg">Adicionar foto</span>
+                                  <span className="text-xs">JPG ou PNG</span>
+                                </span>
                               </button>
                             )}
 
@@ -1009,7 +1026,10 @@ function CriarPage() {
                           <span className="absolute left-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
                           <span className="absolute right-0 top-1/2 h-3 w-px -translate-y-1/2 bg-muted-foreground/55" />
 
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-cream px-2 text-[11px] font-medium text-muted-foreground">
+                          <span
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-cream px-2 text-[11px] font-medium text-muted-foreground"
+                            style={{ fontSize: `${measurementLabelFontSizePx}px` }}
+                          >
                             {selectedPolaroidSize.widthCm} cm
                           </span>
                         </div>
@@ -1029,7 +1049,7 @@ function CriarPage() {
                           aria-label="Adicionar texto"
                           title="Adicionar texto"
                         >
-                          <Type className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                          <Type className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
                           Texto
@@ -1050,13 +1070,13 @@ function CriarPage() {
                           title="Alinhar texto"
                         >
                           {draft.align === "left" ? (
-                            <AlignLeft className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                            <AlignLeft className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                           ) : draft.align === "center" ? (
-                            <AlignJustify className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                            <AlignJustify className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                           ) : draft.align === "right" ? (
-                            <AlignRight className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                            <AlignRight className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                           ) : (
-                            <AlignCenter className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                            <AlignCenter className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                           )}
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
@@ -1072,7 +1092,7 @@ function CriarPage() {
                           aria-label="Trocar Polaroid"
                           title="Trocar Polaroid"
                         >
-                          <Upload className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                          <Upload className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
                           Trocar
@@ -1087,10 +1107,10 @@ function CriarPage() {
                           aria-label="Ajustar Polaroid"
                           title="Ajustar Polaroid"
                         >
-                          <Pencil className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                          <Pencil className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
-                          Ajustar
+                          Posição
                         </span>
                       </div>
 
@@ -1106,7 +1126,7 @@ function CriarPage() {
                           aria-label="Remover"
                           title="Remover"
                         >
-                          <Trash2 className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                          <Trash2 className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
                           Remover
@@ -1121,7 +1141,7 @@ function CriarPage() {
                           aria-label="Salvar Polaroid"
                           title="Salvar Polaroid"
                         >
-                          <Save className="h-4 w-4 transition-colors group-hover:text-[#8b5cf6]" />
+                          <Save className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
                           Salvar

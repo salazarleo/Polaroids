@@ -229,6 +229,232 @@
     cursor: pointer;
   }
 
+  .criar-plain-card {
+    background: var(--color-paper);
+    background-image: none;
+  }
+
+  @keyframes criar-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes criar-photo-in {
+    from {
+      opacity: 0;
+      transform: scale(1.015);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .criar-fade-up {
+    animation: criar-fade-up 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .criar-delay-1 {
+    animation-delay: 70ms;
+  }
+  .criar-delay-2 {
+    animation-delay: 140ms;
+  }
+  .criar-delay-3 {
+    animation-delay: 210ms;
+  }
+  .criar-delay-4 {
+    animation-delay: 280ms;
+  }
+
+  .criar-panel-motion,
+  .criar-control,
+  .criar-font-item,
+  .criar-action-button,
+  .criar-saved-card,
+  .criar-upload-zone {
+    transition:
+      transform 220ms ease-out,
+      box-shadow 220ms ease-out,
+      border-color 220ms ease-out,
+      background-color 220ms ease-out,
+      color 220ms ease-out,
+      opacity 220ms ease-out;
+  }
+
+  .criar-control:active,
+  .criar-action-button:active,
+  .criar-upload-zone:active {
+    transform: scale(0.98);
+  }
+
+  .criar-font-item[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1px rgba(120, 90, 60, 0.08);
+  }
+
+  .criar-photo-enter {
+    animation: criar-photo-in 360ms ease-out both;
+  }
+
+  .criar-alert-card {
+    animation: criar-fade-up 220ms ease-out both;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .criar-panel-motion:hover {
+      border-color: rgba(120, 90, 60, 0.2);
+      box-shadow: var(--shadow-soft), var(--shadow-inset-soft);
+    }
+
+    .criar-control:hover,
+    .criar-action-button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .criar-font-item:hover {
+      transform: translateX(2px);
+    }
+
+    .criar-saved-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .criar-upload-zone:hover {
+      transform: scale(1.005);
+    }
+  }
+
+  @keyframes landing-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .landing-fade-up,
+  .landing-section {
+    animation: landing-fade-up 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .landing-delay-1 {
+    animation-delay: 80ms;
+  }
+  .landing-delay-2 {
+    animation-delay: 160ms;
+  }
+  .landing-delay-3 {
+    animation-delay: 240ms;
+  }
+  .landing-delay-4 {
+    animation-delay: 320ms;
+  }
+  .landing-delay-5 {
+    animation-delay: 420ms;
+  }
+
+  .landing-cta {
+    transition:
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .landing-cta:hover {
+    transform: none;
+    box-shadow: var(--shadow-polaroid-hover);
+  }
+  .landing-cta:active {
+    transform: scale(0.97);
+  }
+
+  .landing-lift {
+    transition:
+      transform 260ms ease-out,
+      box-shadow 260ms ease-out,
+      border-color 260ms ease-out,
+      background-color 260ms ease-out;
+  }
+  .landing-lift:hover {
+    transform: translateY(-4px);
+    border-color: rgba(120, 90, 60, 0.22);
+    box-shadow: var(--shadow-polaroid-hover), var(--shadow-inset-soft);
+  }
+
+  .landing-benefit {
+    border-radius: 0.75rem;
+    transition:
+      transform 200ms ease-out,
+      background-color 200ms ease-out,
+      color 200ms ease-out;
+  }
+  .landing-benefit:hover {
+    transform: translateX(3px);
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+
+  .landing-faq-item {
+    transition:
+      background-color 220ms ease-out,
+      border-color 220ms ease-out;
+  }
+  .landing-faq-item:hover {
+    border-color: rgba(120, 90, 60, 0.28);
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .criar-fade-up,
+    .criar-photo-enter,
+    .criar-alert-card {
+      animation: none;
+    }
+
+    .criar-panel-motion,
+    .criar-control,
+    .criar-font-item,
+    .criar-action-button,
+    .criar-saved-card,
+    .criar-upload-zone {
+      transition: none;
+    }
+
+    .criar-control:hover,
+    .criar-action-button:hover,
+    .criar-font-item:hover,
+    .criar-saved-card:hover,
+    .criar-upload-zone:hover {
+      transform: none;
+    }
+
+    .landing-fade-up,
+    .landing-section {
+      animation: none;
+    }
+
+    .landing-cta,
+    .landing-lift,
+    .landing-benefit,
+    .landing-faq-item {
+      transition: none;
+    }
+
+    .landing-cta:hover,
+    .landing-lift:hover,
+    .landing-benefit:hover {
+      transform: none;
+    }
+  }
+
   /* Tape decoration */
   .tape {
     position: absolute;

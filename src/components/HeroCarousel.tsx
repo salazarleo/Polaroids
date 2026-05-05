@@ -45,8 +45,8 @@ export function HeroCarousel() {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="!left-1/2 !top-full !-translate-x-[120%] !translate-y-0 bg-paper border-border text-ink transition-all duration-300 hover:bg-cream active:scale-95" />
-        <CarouselNext className="!left-1/2 !top-full !translate-x-[20%] !translate-y-0 bg-paper border-border text-ink transition-all duration-300 hover:bg-cream active:scale-95" />
+        <CarouselPrevious className="!-left-6 !top-1/2 flex h-8 w-8 shrink-0 !-translate-y-1/2 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:!-translate-y-1/2 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:!-translate-y-1/2 disabled:hover:bg-paper disabled:hover:shadow-soft disabled:active:scale-100 sm:!-left-10" />
+        <CarouselNext className="!-right-6 !top-1/2 flex h-8 w-8 shrink-0 !-translate-y-1/2 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:!-translate-y-1/2 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:!-translate-y-1/2 disabled:hover:bg-paper disabled:hover:shadow-soft disabled:active:scale-100 sm:!-right-10" />
       </Carousel>
     </div>
   );

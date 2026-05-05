@@ -1,5 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import {
   Dialog,
@@ -17,7 +17,6 @@ import {
 import { Label } from "../components/ui/label";
 import {
   Upload,
-  X,
   Pencil,
   Trash2,
   ChevronDown,
@@ -28,8 +27,18 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import {
+  MELHOR_OFERTA_QTD,
+  PRECO_MELHOR_OFERTA_CENTAVOS,
+  PRECO_POLAROID_EXTRA_CENTAVOS,
+  PRECO_POLAROID_UNITARIO_CENTAVOS,
+  calcularPrecoPolaroidsCentavos,
+  formatarPrecoCentavos,
+} from "../utils/pricing";
 import t1 from "../assets/template-1.png";
 import t2 from "../assets/template-2.png";
 import t3 from "../assets/template-3.png";
@@ -113,6 +122,7 @@ interface PolaroidSizeDef {
 }
 
 const DEFAULT_CAPTION_SIZE: Size = "md";
+const PREVIEW_VISIBLE_COUNT = 4;
 
 const templates: TemplateDef[] = [
   {
@@ -431,6 +441,7 @@ function CriarPage() {
   const [isAdjustingImage, setIsAdjustingImage] = useState(false);
   const [mobileStylesOpen, setMobileStylesOpen] = useState(false);
   const [mobileCaptionEditing, setMobileCaptionEditing] = useState(false);
+  const [previewStartIndex, setPreviewStartIndex] = useState(0);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
@@ -450,6 +461,30 @@ function CriarPage() {
   );
   const uploadPlaceholderScale = 1 / selectedPolaroidSize.previewScale;
   const measurementLabelFontSizePx = 11 / selectedPolaroidSize.previewScale;
+  const quantidadePolaroids = saved.length;
+  const totalPedidoCentavos = calcularPrecoPolaroidsCentavos(quantidadePolaroids);
+  const totalPedidoFormatado = formatarPrecoCentavos(totalPedidoCentavos);
+  const quantidadeExtras = Math.max(0, quantidadePolaroids - MELHOR_OFERTA_QTD);
+  const valorSemPromocaoCentavos = quantidadePolaroids * PRECO_POLAROID_UNITARIO_CENTAVOS;
+  const economiaCentavos = Math.max(0, valorSemPromocaoCentavos - totalPedidoCentavos);
+  const economiaFormatada = formatarPrecoCentavos(economiaCentavos);
+  const mensagemEconomia =
+    economiaCentavos > 0
+      ? `Você economiza ${economiaFormatada} neste pedido.`
+      : quantidadePolaroids === 1
+      ? "1 Polaroid por apenas R$ 0,99."
+      : quantidadePolaroids < MELHOR_OFERTA_QTD
+      ? "R$ 0,99 por Polaroid."
+      : "A partir de 5, cada extra continua só R$ 0,99.";
+  const showPreviewControls = saved.length > PREVIEW_VISIBLE_COUNT;
+  const canGoPrev = previewStartIndex > 0;
+  const canGoNext = previewStartIndex + PREVIEW_VISIBLE_COUNT < saved.length;
+
+  useEffect(() => {
+    const maxPreviewStartIndex = Math.max(0, saved.length - PREVIEW_VISIBLE_COUNT);
+
+    setPreviewStartIndex((current) => Math.min(current, maxPreviewStartIndex));
+  }, [saved.length]);
 
   function pickFile() {
     fileRef.current?.click();
@@ -530,6 +565,42 @@ function CriarPage() {
     setOpen(true);
   }
 
+  function handlePrevPreview() {
+    setPreviewStartIndex((current) => Math.max(0, current - 1));
+  }
+
+  function handleNextPreview() {
+    const maxPreviewStartIndex = Math.max(0, saved.length - PREVIEW_VISIBLE_COUNT);
+
+    setPreviewStartIndex((current) => Math.min(maxPreviewStartIndex, current + 1));
+  }
+
+  function iniciarPagamento() {
+    if (saved.length === 0) {
+      setStyleWarning("Adicione pelo menos uma Polaroid");
+      return;
+    }
+
+    const payload = {
+      produto: "polaroids-digitais",
+      items: saved,
+      quantity: saved.length,
+      amountCentavos: totalPedidoCentavos,
+      amountFormatted: totalPedidoFormatado,
+      currency: "BRL",
+      formats: ["pdf_a4", "png"],
+      pricing: {
+        bestOfferQuantity: MELHOR_OFERTA_QTD,
+        bestOfferAmountCentavos: PRECO_MELHOR_OFERTA_CENTAVOS,
+        extraUnitPriceCentavos: PRECO_POLAROID_EXTRA_CENTAVOS,
+        extras: quantidadeExtras,
+      },
+    };
+
+    console.log("Payload para pagamento:", payload);
+    // TODO: integrar com backend para criar pedido e iniciar checkout
+  }
+
   function editarSalva(item: PolaroidItem) {
     setDraft({ ...item });
     setIsAdjustingImage(false);
@@ -588,30 +659,28 @@ function CriarPage() {
 
   return (
     <div className="criar-page min-h-screen lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
-      {isAdjustingImage && <div className="fixed inset-0 z-40 bg-black/55" />}
-
       {styleWarning && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-6 backdrop-blur-[1px]"
           role="alertdialog"
           aria-live="assertive"
         >
-          <div className="w-full max-w-xs rounded-2xl border border-border bg-paper p-5 text-center shadow-soft">
+          <div className="criar-alert-card w-full max-w-xs rounded-2xl border border-border bg-paper p-5 text-center shadow-soft">
             <p className="text-sm font-medium text-ink">{styleWarning}</p>
 
             <Button
               type="button"
               onClick={() => setStyleWarning("")}
-              className="group mt-4 h-9 w-[92px] rounded-md border border-transparent bg-[#111217] px-0 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+              className="mt-4 h-9 w-[92px] cursor-pointer rounded-md border border-transparent bg-black px-0 text-sm font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
             >
-              <span className="transition-colors group-hover:text-[#c8a36c]">Confirmar</span>
+              Confirmar
             </Button>
           </div>
         </div>
       )}
 
       <main className="mx-auto max-w-7xl px-3 py-3 sm:px-6 sm:py-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
-        <section className="leather-card mx-auto mb-3 p-2 lg:max-w-6xl lg:shrink-0 lg:px-4 lg:py-2.5">
+        <section className="leather-card criar-fade-up criar-delay-1 criar-panel-motion mx-auto mb-3 p-2 lg:max-w-6xl lg:shrink-0 lg:px-4 lg:py-2.5">
           {/* MOBILE - BARRA DE PERSONALIZAR */}
           <div className="lg:hidden">
             <div className="grid grid-cols-2 gap-2">
@@ -630,7 +699,7 @@ function CriarPage() {
                         }))
                       }
                       className={cn(
-                        "px-1.5 py-1.5 text-[10px] transition-colors",
+                        "criar-control px-1.5 py-1.5 text-[10px] transition-all",
                         draft.polaroidSizeId === item.id
                           ? "bg-ink text-paper"
                           : "text-ink hover:bg-cream",
@@ -652,7 +721,7 @@ function CriarPage() {
                       key={s}
                       onClick={() => setDraft((d) => ({ ...d, size: s }))}
                       className={cn(
-                        "px-1.5 py-1.5 text-[10px] transition-colors",
+                        "criar-control px-1.5 py-1.5 text-[10px] transition-all",
                         draft.size === s ? "bg-ink text-paper" : "text-ink hover:bg-cream",
                       )}
                     >
@@ -666,9 +735,9 @@ function CriarPage() {
             <Button
               size="sm"
               onClick={finalizarPedido}
-              className="group mt-2 h-8 w-full rounded-full border border-transparent bg-[#111217] text-xs font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+              className="mt-2 h-8 w-full cursor-pointer rounded-full border border-transparent bg-black text-xs font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
             >
-              <span className="transition-colors group-hover:text-[#c8a36c]">Finalizar</span>
+              Finalizar
             </Button>
           </div>
 
@@ -690,7 +759,7 @@ function CriarPage() {
                           }))
                         }
                         className={cn(
-                          "rounded-md border px-2 py-2 text-xs transition-colors",
+                          "criar-control rounded-md border px-2 py-2 text-xs transition-all",
                           draft.polaroidSizeId === item.id
                             ? "border-ink bg-ink text-paper"
                             : "border-border bg-paper text-ink hover:bg-cream",
@@ -711,7 +780,7 @@ function CriarPage() {
                         key={s}
                         onClick={() => setDraft((d) => ({ ...d, size: s }))}
                         className={cn(
-                          "rounded-md border px-2 py-2 text-xs transition-colors",
+                          "criar-control rounded-md border px-2 py-2 text-xs transition-all",
                           draft.size === s
                             ? "border-ink bg-ink text-paper"
                             : "border-border bg-paper text-ink hover:bg-cream",
@@ -726,9 +795,9 @@ function CriarPage() {
 
               <Button
                 onClick={finalizarPedido}
-                className="group col-start-3 h-10 self-center justify-self-end rounded-md border border-transparent bg-[#111217] px-6 py-2 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                className="col-start-3 h-10 cursor-pointer self-center justify-self-end rounded-md border border-transparent bg-black px-6 py-2 text-sm font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
               >
-                <span className="transition-colors group-hover:text-[#c8a36c]">Finalizar</span>
+                Finalizar
               </Button>
             </div>
           </div>
@@ -736,8 +805,8 @@ function CriarPage() {
 
         <div className="mx-auto grid items-stretch justify-center gap-3 lg:h-[calc(100dvh-11.75rem)] lg:min-h-0 lg:max-h-[42rem] lg:overflow-hidden lg:grid-cols-[300px_minmax(460px,560px)_300px] lg:gap-6">
           {/* ESQUERDA - MODELOS */}
-          <aside className="order-3 lg:order-1 lg:h-full lg:min-h-0">
-            <div className="leather-card flex h-full flex-col border-0 bg-transparent p-0 shadow-none lg:min-h-0 lg:border lg:bg-paper lg:p-4 lg:shadow-soft">
+          <aside className="criar-fade-up criar-delay-2 order-3 lg:order-1 lg:h-full lg:min-h-0">
+            <div className="leather-card criar-plain-card criar-panel-motion flex h-full flex-col border-0 bg-transparent p-0 shadow-none lg:min-h-0 lg:border lg:bg-paper lg:p-4 lg:shadow-soft">
               {/* DESKTOP */}
               <div className="hidden lg:flex lg:h-full lg:min-h-0 lg:flex-col">
                 <h2 className="font-display text-xl font-medium text-ink">Fontes</h2>
@@ -753,7 +822,7 @@ function CriarPage() {
                           type="button"
                           onClick={() => selecionarFonte(style)}
                           className={cn(
-                            "group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors",
+                            "criar-font-item group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-all",
                             active ? "bg-cream/80" : "hover:bg-cream/60",
                           )}
                           aria-pressed={active}
@@ -787,7 +856,7 @@ function CriarPage() {
                 <button
                   type="button"
                   onClick={() => setMobileStylesOpen((value) => !value)}
-                  className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-paper/70 px-3 py-2 text-left transition-colors hover:bg-cream"
+                  className="criar-control flex w-full items-center justify-between rounded-xl border border-border/70 bg-paper/70 px-3 py-2 text-left transition-all hover:bg-cream"
                 >
                   <h2 className="font-display text-base font-medium text-ink">Fontes</h2>
 
@@ -800,7 +869,7 @@ function CriarPage() {
                 </button>
 
                 {mobileStylesOpen && (
-                  <div className="mt-2 rounded-xl border border-border/70 bg-paper/70 p-2">
+                  <div className="criar-alert-card mt-2 rounded-xl border border-border/70 bg-paper/70 p-2">
                     <div className="max-h-[300px] space-y-1 overflow-y-auto pr-1">
                       {fontStyles.map((style) => {
                         const active = style.id === draft.fontStyleId;
@@ -811,7 +880,7 @@ function CriarPage() {
                             type="button"
                             onClick={() => selecionarFonte(style)}
                             className={cn(
-                              "group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors",
+                              "criar-font-item group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-all",
                               active ? "bg-cream/80" : "hover:bg-cream/60",
                             )}
                             aria-pressed={active}
@@ -844,8 +913,8 @@ function CriarPage() {
           </aside>
 
           {/* CENTRO - PREVIEW */}
-          <section className="order-2 lg:order-2 lg:h-full lg:min-h-0">
-            <div className="leather-card flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft">
+          <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0">
+            <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft">
               <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3">
                 <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3">
                   <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -919,7 +988,7 @@ function CriarPage() {
                                 <img
                                   src={draft.photo}
                                   alt="Sua foto"
-                                  className="h-full w-full object-cover"
+                                  className="criar-photo-enter h-full w-full object-cover"
                                   style={{
                                     objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%`,
                                   }}
@@ -933,7 +1002,7 @@ function CriarPage() {
                             ) : (
                               <button
                                 onClick={pickFile}
-                                className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-colors hover:bg-muted"
+                                className="criar-upload-zone flex w-full cursor-pointer flex-col items-center justify-center gap-3 bg-muted/50 text-muted-foreground transition-all hover:bg-muted"
                                 style={{
                                   height: `${selectedPolaroidSize.previewImageHeightCm}cm`,
                                 }}
@@ -965,7 +1034,7 @@ function CriarPage() {
                                 <Button
                                   type="button"
                                   onClick={() => setIsAdjustingImage(false)}
-                                  className="group h-9 w-[92px] rounded-md border border-transparent bg-[#111217] px-0 text-sm font-medium text-white shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                                  className="criar-action-button group h-9 w-[92px] rounded-md border border-transparent bg-[#111217] px-0 text-sm font-medium text-white shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                                   style={{
                                     transform: `scale(${1 / selectedPolaroidSize.previewScale})`,
                                   }}
@@ -992,7 +1061,7 @@ function CriarPage() {
                                   }}
                                   maxLength={60}
                                   className={cn(
-                                    "w-full rounded-md border border-border bg-paper/90 px-2 py-1 leading-tight text-ink outline-none",
+                                    "w-full rounded-md border border-border bg-paper/90 px-2 py-1 leading-tight text-ink outline-none transition-all duration-200 focus:border-sepia/60 focus:shadow-soft",
                                     alignClass[draft.align],
                                     draftFontStyle?.fontClass,
                                     fontWeightClass[draft.fontWeightId],
@@ -1004,7 +1073,7 @@ function CriarPage() {
                                   type="button"
                                   onClick={() => setMobileCaptionEditing(true)}
                                   className={cn(
-                                    "inline-block w-full max-w-full cursor-text break-words bg-transparent leading-tight outline-none",
+                                    "inline-block w-full max-w-full cursor-text break-words bg-transparent leading-tight outline-none transition-colors duration-200 hover:text-ink",
                                     alignClass[draft.align],
                                     draftFontStyle?.fontClass,
                                     fontWeightClass[draft.fontWeightId],
@@ -1051,13 +1120,13 @@ function CriarPage() {
                 </div>
 
                 {draft.photo && !isAdjustingImage && (
-                  <div className="relative z-20 flex shrink-0 flex-col items-center gap-2">
+                  <div className="criar-fade-up relative z-20 flex shrink-0 flex-col items-center gap-2">
                     <div className="flex justify-center gap-4">
                       <div className="flex w-12 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setMobileCaptionEditing(true)}
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Adicionar texto"
                           title="Adicionar texto"
                         >
@@ -1077,7 +1146,7 @@ function CriarPage() {
                               align: nextAlign[d.align],
                             }))
                           }
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Alinhar texto"
                           title="Alinhar texto"
                         >
@@ -1100,7 +1169,7 @@ function CriarPage() {
                         <button
                           type="button"
                           onClick={() => setIsAdjustingImage(true)}
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Ajustar Polaroid"
                           title="Ajustar Polaroid"
                         >
@@ -1115,7 +1184,7 @@ function CriarPage() {
                         <button
                           type="button"
                           onClick={pickFile}
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Trocar Polaroid"
                           title="Trocar Polaroid"
                         >
@@ -1140,7 +1209,7 @@ function CriarPage() {
                             setIsAdjustingImage(false);
                             setMobileCaptionEditing(false);
                           }}
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Remover"
                           title="Remover"
                         >
@@ -1155,7 +1224,7 @@ function CriarPage() {
                         <button
                           type="button"
                           onClick={concluir}
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Salvar Polaroid"
                           title="Salvar Polaroid"
                         >
@@ -1181,20 +1250,34 @@ function CriarPage() {
           </section>
 
           {/* MINHAS POLAROIDS */}
-          <aside className="order-4 flex flex-col lg:order-3 lg:h-full lg:min-h-0">
-            <div className="leather-card flex min-h-0 flex-1 flex-col overflow-hidden p-4 lg:p-4">
+          <aside className="criar-fade-up criar-delay-4 order-4 flex flex-col lg:order-3 lg:h-full lg:min-h-0">
+            <div className="leather-card criar-plain-card criar-panel-motion flex min-h-0 flex-1 flex-col overflow-hidden p-4 lg:p-4">
               <div>
                 <h2 className="font-display text-xl font-medium">Minhas Polaroids</h2>
 
-                <p className="mt-1 font-script text-lg text-sepia">
-                  {saved.length > 0
-                    ? `${saved.length} ${saved.length === 1 ? "memória" : "memórias"} no álbum`
-                    : ""}
-                </p>
+                {saved.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-border/70 bg-cream/55 px-3 py-2 shadow-soft">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Adicionadas
+                      </span>
+                      <span className="text-sm font-semibold text-ink">
+                        {saved.length} {saved.length === 1 ? "foto" : "fotos"}
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/60 pt-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Total
+                      </span>
+                      <span className="text-sm font-bold text-sepia">{totalPedidoFormatado}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {saved.length === 0 ? (
-                <div className="mt-4 flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border bg-paper/50 p-5 text-center">
+                <div className="criar-alert-card mt-4 flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border bg-paper/50 p-5 text-center">
                   <p className="text-sm text-muted-foreground">Nenhuma Polaroid criada ainda.</p>
                 </div>
               ) : (
@@ -1213,7 +1296,11 @@ function CriarPage() {
                     const cardWidth = gallerySlotStyle.width;
 
                     return (
-                      <div key={item.id} className="relative shrink-0" style={{ width: cardWidth }}>
+                      <div
+                        key={item.id}
+                        className="criar-saved-card criar-fade-up relative shrink-0"
+                        style={{ width: cardWidth }}
+                      >
                         <div className="mb-2 text-center text-[11px] font-medium text-muted-foreground">
                           {itemPolaroidSize.label} cm
                         </div>
@@ -1225,7 +1312,7 @@ function CriarPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
-                                className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black text-white shadow-soft transition-colors hover:bg-ink"
+                                className="criar-action-button absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-black text-white shadow-soft transition-all hover:border-white hover:bg-ink hover:shadow-polaroid"
                                 aria-label="Mais opções"
                               >
                                 <MoreHorizontal className="h-3.5 w-3.5" />
@@ -1322,52 +1409,168 @@ function CriarPage() {
 
       {/* MODAL FINALIZAÇÃO */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-2xl border-border bg-paper sm:max-w-md">
+        <DialogContent className="rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-md">
           <DialogHeader className="text-center sm:text-center">
             <DialogTitle className="font-display text-2xl font-medium text-ink">
               Suas Polaroids estão prontas
             </DialogTitle>
 
-            <DialogDescription className="mt-2 text-base leading-relaxed text-muted-foreground">
-              Revise suas imagens e libere o download em alta qualidade após o pagamento.
-            </DialogDescription>
+        
           </DialogHeader>
 
-          <div className="my-2 flex flex-wrap justify-center gap-3">
-            {saved.slice(0, 6).map((item) => (
-              <div key={item.id} className="polaroid !p-1.5 !pb-3 w-20">
-                <div className="aspect-square overflow-hidden bg-muted">
-                  {item.photo && (
-                    <img
-                      src={item.photo}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      style={{
-                        objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
-                      }}
-                    />
+          <div className="my-2">
+            <div className="flex items-center justify-center gap-2">
+              {showPreviewControls && (
+                <button
+                  type="button"
+                  onClick={handlePrevPreview}
+                  disabled={!canGoPrev}
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
+                    !canGoPrev &&
+                      "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
                   )}
+                  aria-label="Polaroid anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              )}
+
+              <div
+                className={cn(
+                  "overflow-hidden",
+                  showPreviewControls && "relative min-w-0 flex-1 rounded-xl",
+                )}
+              >
+                {showPreviewControls && (
+                  <>
+                    <span className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-5 bg-gradient-to-r from-[#f1e7da] to-transparent" />
+                    <span className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-5 bg-gradient-to-l from-[#f1e7da] to-transparent" />
+                  </>
+                )}
+
+                <div
+                  className={cn(
+                    "motion-safe:transition-[margin-left,transform,opacity] motion-safe:duration-500 motion-safe:ease-out",
+                    showPreviewControls
+                      ? "flex w-full will-change-[margin-left]"
+                      : "flex justify-center gap-3 overflow-hidden",
+                  )}
+                  style={showPreviewControls ? { marginLeft: `${previewStartIndex * -25}%` } : {}}
+                >
+                  {saved.map((item) => {
+                    const itemPolaroidSize =
+                      polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
+                      polaroidSizes[0];
+
+                    const itemFontStyle = item.fontStyleId
+                      ? fontStyles.find((style) => style.id === item.fontStyleId)
+                      : null;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "shrink-0 transition-all duration-300 ease-out",
+                          showPreviewControls ? "basis-1/4 px-1" : "w-16 sm:w-20",
+                        )}
+                      >
+                        <div className="polaroid w-full !p-1.5 !pb-2 animate-in fade-in-0 zoom-in-95 duration-300 ease-out transition-all">
+                          <span className="absolute left-1.5 top-1.5 z-10 rounded-sm bg-paper/95 px-1 py-0.5 text-[8px] font-semibold leading-none text-ink shadow-soft">
+                            {itemPolaroidSize.label} cm
+                          </span>
+
+                          <div className="aspect-square overflow-hidden bg-muted">
+                            {item.photo && (
+                              <img
+                                src={item.photo}
+                                alt=""
+                                className="h-full w-full object-cover transition-transform duration-500 ease-out"
+                                style={{
+                                  objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                }}
+                              />
+                            )}
+                          </div>
+
+                          <p
+                            className={cn(
+                              "mt-1 flex min-h-[1.15rem] items-center justify-center overflow-hidden text-center text-[8px] leading-[1.15] text-ink/85",
+                              itemFontStyle?.fontClass,
+                            )}
+                            title={item.caption}
+                          >
+                            <span className="block max-w-full overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                              {item.caption}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
 
+              {showPreviewControls && (
+                <button
+                  type="button"
+                  onClick={handleNextPreview}
+                  disabled={!canGoNext}
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
+                    !canGoNext &&
+                      "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
+                  )}
+                  aria-label="Próxima Polaroid"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <Button className="h-12 w-full rounded-full bg-ink text-base font-medium text-paper hover:bg-ink/90">
-            Finalizar e liberar download
+          <div className="rounded-2xl border border-border/80 bg-paper/60 p-4 shadow-soft transition-all duration-300 ease-out">
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-muted-foreground">Quantidade</span>
+              <span className="font-medium text-ink">
+                {quantidadePolaroids} {quantidadePolaroids === 1 ? "Polaroid" : "Polaroids"}
+              </span>
+            </div>
+
+            <div className="mt-4 border-t border-border/70 pt-4">
+              <div className="rounded-2xl border border-border/70 bg-cream/70 p-4 text-center shadow-soft transition-all duration-300 ease-out animate-in fade-in-0 zoom-in-95">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Total do pedido
+                </p>
+
+                <p className="mt-1 text-3xl font-bold tracking-tight text-ink">
+                  {totalPedidoFormatado}
+                </p>
+
+                <p className="mt-1 text-xs font-medium text-sepia">{mensagemEconomia}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-border/70 bg-paper/70 p-3 text-left">
+              <p className="text-sm font-medium text-ink">Arquivos liberados em alta qualidade</p>
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                <li>PDF pronto para impressão</li>
+                <li>PNG individuais em alta qualidade</li>
+              </ul>
+            </div>
+          </div>
+
+          <Button
+            onClick={iniciarPagamento}
+            className="h-12 w-full cursor-pointer rounded-full bg-ink text-base font-medium text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98]"
+          >
+            Pagar {totalPedidoFormatado} e liberar Polaroids
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
             Você só paga depois de visualizar.
           </p>
 
-          <button
-            onClick={() => setOpen(false)}
-            className="absolute right-4 top-4 text-muted-foreground hover:text-ink"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </DialogContent>
       </Dialog>
     </div>

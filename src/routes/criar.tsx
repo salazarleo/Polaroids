@@ -480,7 +480,7 @@ function CriarPage() {
 
   function selecionarFonte(style: FontStyleDef) {
     if (!draft.photo) {
-      setStyleWarning("Adicione primeiro uma foto");
+      setStyleWarning("Adicione primeiro uma imagem");
       return;
     }
 
@@ -523,7 +523,7 @@ function CriarPage() {
 
   function finalizarPedido() {
     if (saved.length === 0) {
-      setStyleWarning("Adicione pelo menos uma Polaroid em Minhas Polaroids");
+      setStyleWarning("Adicione pelo menos uma Polaroid");
       return;
     }
 
@@ -847,7 +847,7 @@ function CriarPage() {
           <section className="order-2 lg:order-2 lg:h-full lg:min-h-0">
             <div className="leather-card flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft">
               <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3">
-                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-cream/80 lg:p-3">
+                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3">
                   <div className="flex min-h-0 flex-1 items-center justify-center">
                     <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible">
                       <div
@@ -1004,7 +1004,7 @@ function CriarPage() {
                                   type="button"
                                   onClick={() => setMobileCaptionEditing(true)}
                                   className={cn(
-                                    "inline-block w-full max-w-full break-words bg-transparent leading-tight outline-none lg:pointer-events-none",
+                                    "inline-block w-full max-w-full cursor-text break-words bg-transparent leading-tight outline-none",
                                     alignClass[draft.align],
                                     draftFontStyle?.fontClass,
                                     fontWeightClass[draft.fontWeightId],
@@ -1099,21 +1099,6 @@ function CriarPage() {
                       <div className="flex w-12 flex-col items-center gap-1">
                         <button
                           type="button"
-                          onClick={pickFile}
-                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
-                          aria-label="Trocar Polaroid"
-                          title="Trocar Polaroid"
-                        >
-                          <Upload className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
-                        </button>
-                        <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
-                          Trocar
-                        </span>
-                      </div>
-
-                      <div className="flex w-12 flex-col items-center gap-1">
-                        <button
-                          type="button"
                           onClick={() => setIsAdjustingImage(true)}
                           className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Ajustar Polaroid"
@@ -1123,6 +1108,21 @@ function CriarPage() {
                         </button>
                         <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
                           Posição
+                        </span>
+                      </div>
+
+                                            <div className="flex w-12 flex-col items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={pickFile}
+                          className="group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-colors hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          aria-label="Trocar Polaroid"
+                          title="Trocar Polaroid"
+                        >
+                          <Upload className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
+                        </button>
+                        <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
+                          Trocar
                         </span>
                       </div>
 

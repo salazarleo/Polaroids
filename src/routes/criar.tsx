@@ -26,6 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  FlipHorizontal2,
+  FlipVertical2,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
@@ -278,13 +280,13 @@ const polaroidSizes: PolaroidSizeDef[] = [
     label: "7x10",
     widthCm: 7,
     heightCm: 10,
-    imageHeightCm: 7.8,
+    imageHeightCm: 8.8,
     measureWidthCm: 5.8,
     measureHeightCm: 8.2,
 
     previewWidthCm: 7,
     previewHeightCm: 10,
-    previewImageHeightCm: 7.8,
+    previewImageHeightCm: 8.4,
     previewMeasureWidthCm: 5.8,
     previewMeasureHeightCm: 8.2,
     previewScale: 0.82,
@@ -295,13 +297,13 @@ const polaroidSizes: PolaroidSizeDef[] = [
     label: "5x8",
     widthCm: 5,
     heightCm: 8,
-    imageHeightCm: 6.2,
+    imageHeightCm: 7.2,
     measureWidthCm: 4.1,
     measureHeightCm: 6.4,
 
     previewWidthCm: 5,
     previewHeightCm: 8,
-    previewImageHeightCm: 6.2,
+    previewImageHeightCm: 6.7,
     previewMeasureWidthCm: 4.1,
     previewMeasureHeightCm: 6.4,
     previewScale: 1.05,
@@ -312,13 +314,13 @@ const polaroidSizes: PolaroidSizeDef[] = [
     label: "4x5",
     widthCm: 4,
     heightCm: 5,
-    imageHeightCm: 3.6,
+    imageHeightCm: 4.4,
     measureWidthCm: 3.1,
     measureHeightCm: 4,
 
     previewWidthCm: 4,
     previewHeightCm: 5,
-    previewImageHeightCm: 3.6,
+    previewImageHeightCm: 4.0,
     previewMeasureWidthCm: 3.1,
     previewMeasureHeightCm: 4,
     previewScale: 1.55,
@@ -340,6 +342,9 @@ interface PolaroidItem {
   align: Align;
   imagePosX: number;
   imagePosY: number;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
+  imageScale: number;
 }
 
 const captionSizeClass: Record<PolaroidSizeId, Record<Size, string>> = {
@@ -402,6 +407,13 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
+function getImageTransform(item: PolaroidItem): string | undefined {
+  const scaleX = item.imageScale * (item.flipHorizontal ? -1 : 1);
+  const scaleY = item.imageScale * (item.flipVertical ? -1 : 1);
+  if (scaleX === 1 && scaleY === 1) return undefined;
+  return `scale(${scaleX}, ${scaleY})`;
+}
+
 function getUploadErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
 
@@ -435,6 +447,9 @@ function newDraft(
     align: "default",
     imagePosX: 50,
     imagePosY: 50,
+    flipHorizontal: false,
+    flipVertical: false,
+    imageScale: 1,
   };
 }
 
@@ -446,6 +461,15 @@ interface ImageDragState {
   startPosY: number;
   areaWidth: number;
   areaHeight: number;
+}
+
+interface CornerDragState {
+  pointerId: number;
+  corner: "tl" | "tr" | "bl" | "br";
+  startX: number;
+  startY: number;
+  startScale: number;
+  areaSize: number;
 }
 
 function CriarPage() {
@@ -460,9 +484,11 @@ function CriarPage() {
   const [previewPolaroidId, setPreviewPolaroidId] = useState<string | null>(null);
   const [draftIdPendenteRemocao, setDraftIdPendenteRemocao] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [flipMenuOpen, setFlipMenuOpen] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
+  const cornerDragRef = useRef<CornerDragState | null>(null);
   const uploadAbortRef = useRef<string | null>(null);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
@@ -522,6 +548,18 @@ function CriarPage() {
       return saved.some((item) => item.id === current) ? current : null;
     });
   }, [saved]);
+
+  useEffect(() => {
+    if (!flipMenuOpen) return;
+    const close = () => setFlipMenuOpen(false);
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("click", close, { once: true });
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+      document.removeEventListener("click", close);
+    };
+  }, [flipMenuOpen]);
 
   function pickFile() {
     fileRef.current?.click();
@@ -607,6 +645,9 @@ function CriarPage() {
         uploadStatus: "uploading",
         imagePosX: 50,
         imagePosY: 50,
+        flipHorizontal: false,
+        flipVertical: false,
+        imageScale: 1,
       };
     });
 
@@ -824,30 +865,58 @@ function CriarPage() {
   }
 
   function onMoveImageDrag(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
+    const cDrag = cornerDragRef.current;
+    if (cDrag && cDrag.pointerId === e.pointerId) {
+      const dx = e.clientX - cDrag.startX;
+      const dy = e.clientY - cDrag.startY;
+      const signX = cDrag.corner === "tr" || cDrag.corner === "br" ? 1 : -1;
+      const signY = cDrag.corner === "bl" || cDrag.corner === "br" ? 1 : -1;
+      const delta = (dx * signX + dy * signY) / Math.max(cDrag.areaSize, 1);
+      const newScale = Math.max(1, Math.min(4, cDrag.startScale + delta * 2));
+      setDraft((d) => ({ ...d, imageScale: newScale }));
+      return;
+    }
 
+    const drag = dragRef.current;
     if (!isAdjustingImage || !drag || drag.pointerId !== e.pointerId) return;
 
     const deltaX = e.clientX - drag.startX;
     const deltaY = e.clientY - drag.startY;
 
     const nextX = clampPercent(drag.startPosX - (deltaX / Math.max(drag.areaWidth, 1)) * 100);
-
     const nextY = clampPercent(drag.startPosY - (deltaY / Math.max(drag.areaHeight, 1)) * 100);
 
     setDraft((d) => ({ ...d, imagePosX: nextX, imagePosY: nextY }));
   }
 
   function onEndImageDrag(e: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-
-    if (!drag || drag.pointerId !== e.pointerId) return;
-
-    dragRef.current = null;
-
+    if (cornerDragRef.current?.pointerId === e.pointerId) {
+      cornerDragRef.current = null;
+    }
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+    }
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
+  }
+
+  function onStartCornerDrag(
+    e: React.PointerEvent<HTMLDivElement>,
+    corner: "tl" | "tr" | "bl" | "br",
+  ) {
+    e.stopPropagation();
+    const parent = e.currentTarget.parentElement as HTMLElement;
+    const rect = parent.getBoundingClientRect();
+    cornerDragRef.current = {
+      pointerId: e.pointerId,
+      corner,
+      startX: e.clientX,
+      startY: e.clientY,
+      startScale: draft.imageScale,
+      areaSize: Math.min(rect.width, rect.height),
+    };
+    parent.setPointerCapture(e.pointerId);
   }
 
   return (
@@ -1180,18 +1249,38 @@ function CriarPage() {
                                 onPointerCancel={onEndImageDrag}
                                 onLostPointerCapture={onEndImageDrag}
                               >
-                                <img
-                                  src={draft.photoLocalUrl}
-                                  alt="Sua foto"
-                                  className="criar-photo-enter h-full w-full object-cover"
-                                  style={{
-                                    objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%`,
-                                  }}
-                                  draggable={false}
-                                />
+                                <div className="criar-photo-enter h-full w-full">
+                                  <img
+                                    src={draft.photoLocalUrl}
+                                    alt="Sua foto"
+                                    className="h-full w-full object-cover"
+                                    style={{
+                                      objectPosition: `${draft.imagePosX}% ${draft.imagePosY}%`,
+                                      transform: getImageTransform(draft),
+                                    }}
+                                    draggable={false}
+                                  />
+                                </div>
 
                                 {isAdjustingImage && (
-                                  <div className="pointer-events-none absolute inset-0 border-2 border-dashed border-paper/90" />
+                                  <>
+                                    <div className="pointer-events-none absolute inset-0 border-2 border-dashed border-paper/90" />
+                                    {(["tl", "tr", "bl", "br"] as const).map((corner) => (
+                                      <div
+                                        key={corner}
+                                        className={cn(
+                                          "absolute z-[90] flex h-7 w-7 items-center justify-center",
+                                          corner === "tl" && "left-0 top-0 cursor-nw-resize",
+                                          corner === "tr" && "right-0 top-0 cursor-ne-resize",
+                                          corner === "bl" && "bottom-0 left-0 cursor-sw-resize",
+                                          corner === "br" && "bottom-0 right-0 cursor-se-resize",
+                                        )}
+                                        onPointerDown={(e) => onStartCornerDrag(e, corner)}
+                                      >
+                                        <div className="h-3 w-3 rounded-sm border-[1.5px] border-white/70 bg-white shadow-md" />
+                                      </div>
+                                    ))}
+                                  </>
                                 )}
                               </div>
                             ) : (
@@ -1236,7 +1325,7 @@ function CriarPage() {
 
                             <div
                               className={cn(
-                                "absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-visible px-2 text-ink/85 leading-tight",
+                                "absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-visible px-2 text-black leading-tight",
                                 isAdjustingImage ? "z-[80]" : "",
                               )}
                               style={{
@@ -1338,8 +1427,8 @@ function CriarPage() {
 
                 {draft.photoLocalUrl && !isAdjustingImage && (
                   <div className="criar-fade-up relative z-20 flex shrink-0 flex-col items-center gap-2">
-                    <div className="flex justify-center gap-4">
-                      <div className="flex w-12 flex-col items-center gap-1">
+                    <div className="flex justify-center gap-2">
+                      <div className="flex w-10 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setMobileCaptionEditing(true)}
@@ -1354,7 +1443,7 @@ function CriarPage() {
                         </span>
                       </div>
 
-                      <div className="flex w-12 flex-col items-center gap-1">
+                      <div className="flex w-10 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={() =>
@@ -1382,13 +1471,57 @@ function CriarPage() {
                         </span>
                       </div>
 
-                      <div className="flex w-12 flex-col items-center gap-1">
+                      <div className="relative flex w-10 flex-col items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setFlipMenuOpen((v) => !v)}
+                          className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
+                          aria-label="Inverter imagem"
+                          title="Inverter imagem"
+                        >
+                          <FlipHorizontal2 className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
+                        </button>
+                        <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
+                          Inverter
+                        </span>
+                        {flipMenuOpen && (
+                          <>
+                            <div className="absolute bottom-full left-1/2 z-[101] mb-2 w-48 -translate-x-1/2 overflow-hidden rounded-xl border border-[#2a2f3a] bg-[#1a1c23] shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDraft((d) => ({ ...d, flipHorizontal: !d.flipHorizontal }));
+                                  setFlipMenuOpen(false);
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-[#2a2f3a]"
+                              >
+                                <FlipHorizontal2 className="h-3.5 w-3.5 shrink-0" />
+                                Inverter horizontalmente
+                              </button>
+                              <div className="h-px bg-[#2a2f3a]" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDraft((d) => ({ ...d, flipVertical: !d.flipVertical }));
+                                  setFlipMenuOpen(false);
+                                }}
+                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-[#2a2f3a]"
+                              >
+                                <FlipVertical2 className="h-3.5 w-3.5 shrink-0" />
+                                Inverter verticalmente
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex w-10 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setIsAdjustingImage(true)}
                           className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
-                          aria-label="Ajustar Polaroid"
-                          title="Ajustar Polaroid"
+                          aria-label="Ajustar posição e zoom"
+                          title="Ajustar posição e zoom"
                         >
                           <Pencil className="h-4 w-4 transition-colors group-hover:text-[#c8a36c]" />
                         </button>
@@ -1397,7 +1530,7 @@ function CriarPage() {
                         </span>
                       </div>
 
-                      <div className="flex w-12 flex-col items-center gap-1">
+                      <div className="flex w-10 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={pickFile}
@@ -1412,7 +1545,7 @@ function CriarPage() {
                         </span>
                       </div>
 
-                      <div className="flex w-12 flex-col items-center gap-1">
+                      <div className="flex w-10 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={removerDraftAtual}
@@ -1427,7 +1560,7 @@ function CriarPage() {
                         </span>
                       </div>
 
-                      <div className="flex w-12 flex-col items-center gap-1">
+                      <div className="flex w-10 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={concluir}
@@ -1553,13 +1686,14 @@ function CriarPage() {
                                     className="h-full w-full object-cover"
                                     style={{
                                       objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                      transform: getImageTransform(item),
                                     }}
                                   />
                                 )}
                               </div>
 
                               <p
-                                className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-ink/85 leading-tight"
+                                className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-black leading-tight"
                                 style={{
                                   top: `calc(0.75rem + ${itemPolaroidSize.imageHeightCm}cm)`,
                                 }}
@@ -1724,6 +1858,7 @@ function CriarPage() {
                                     className="h-full w-full object-cover transition-transform duration-500 ease-out"
                                     style={{
                                       objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                      transform: getImageTransform(item),
                                     }}
                                   />
                                 )}
@@ -1731,7 +1866,7 @@ function CriarPage() {
 
                               <p
                                 className={cn(
-                                  "mt-1 flex min-h-[1.15rem] items-center justify-center overflow-hidden text-center text-[8px] leading-[1.15] text-ink/85",
+                                  "mt-1 flex min-h-[1.15rem] items-center justify-center overflow-hidden text-center text-[8px] leading-[1.15] text-black",
                                   itemFontStyle?.fontClass,
                                 )}
                                 title={item.caption}
@@ -1894,13 +2029,14 @@ function CriarPage() {
                             className="h-full w-full object-cover"
                             style={{
                               objectPosition: `${previewPolaroid.imagePosX}% ${previewPolaroid.imagePosY}%`,
+                              transform: getImageTransform(previewPolaroid),
                             }}
                           />
                         )}
                       </div>
 
                       <p
-                        className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-ink/85 leading-tight"
+                        className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-black leading-tight"
                         style={{
                           top: `calc(0.75rem + ${previewPolaroidSize.imageHeightCm}cm)`,
                         }}

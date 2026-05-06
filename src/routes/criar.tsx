@@ -28,6 +28,9 @@ import {
   X,
   FlipHorizontal2,
   FlipVertical2,
+  FileText,
+  FileImage,
+  Layers,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
@@ -1085,13 +1088,16 @@ function CriarPage() {
                           onClick={() => selecionarFonte(style)}
                           className={cn(
                             "criar-font-item group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-all",
-                            active ? "bg-cream/80" : "hover:bg-cream/60",
+                            active
+                              ? "border-l-2 border-ink bg-cream/90 pl-[calc(0.5rem-2px)]"
+                              : "hover:bg-cream/60",
                           )}
                           aria-pressed={active}
                         >
                           <span
                             className={cn(
                               "min-w-0 flex-1 truncate text-[1rem] leading-tight text-ink",
+                              active && "font-semibold",
                               style.fontClass,
                             )}
                           >
@@ -1100,7 +1106,8 @@ function CriarPage() {
 
                           <span
                             className={cn(
-                              "shrink-0 text-sm leading-tight text-muted-foreground group-hover:text-ink",
+                              "shrink-0 text-sm leading-tight group-hover:text-ink",
+                              active ? "text-ink/70" : "text-muted-foreground",
                               style.fontClass,
                             )}
                           >
@@ -1143,13 +1150,16 @@ function CriarPage() {
                             onClick={() => selecionarFonte(style)}
                             className={cn(
                               "criar-font-item group flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-all",
-                              active ? "bg-cream/80" : "hover:bg-cream/60",
+                              active
+                                ? "border-l-2 border-ink bg-cream/90 pl-[calc(0.5rem-2px)]"
+                                : "hover:bg-cream/60",
                             )}
                             aria-pressed={active}
                           >
                             <span
                               className={cn(
                                 "min-w-0 flex-1 truncate text-base leading-tight text-ink",
+                                active && "font-semibold",
                                 style.fontClass,
                               )}
                             >
@@ -1158,7 +1168,8 @@ function CriarPage() {
 
                             <span
                               className={cn(
-                                "shrink-0 text-sm leading-tight text-muted-foreground group-hover:text-ink",
+                                "shrink-0 text-sm leading-tight group-hover:text-ink",
+                                active ? "text-ink/70" : "text-muted-foreground",
                                 style.fontClass,
                               )}
                             >
@@ -1635,6 +1646,8 @@ function CriarPage() {
                     const gallerySlotStyle = getGallerySlotStyle(itemPolaroidSize);
                     const cardWidth = gallerySlotStyle.width;
 
+                    const isSelected = item.id === draft.id;
+
                     return (
                       <div
                         key={item.id}
@@ -1652,9 +1665,24 @@ function CriarPage() {
                           <button
                             type="button"
                             onClick={() => editarSalva(item)}
-                            className="absolute inset-0 z-10 rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                            className={cn(
+                              "absolute inset-0 z-10 rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
+                              isSelected && "ring-2 ring-ink/40 ring-offset-2 ring-offset-paper",
+                            )}
                             aria-label="Editar Polaroid"
                           />
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDraftIdPendenteRemocao(item.id);
+                            }}
+                            className="absolute -right-1.5 -top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-border/70 bg-paper shadow-soft transition-opacity duration-150 hover:bg-cream focus:outline-none"
+                            aria-label="Remover Polaroid"
+                          >
+                            <X className="h-2.5 w-2.5 text-muted-foreground" />
+                          </button>
 
                           <div
                             className="origin-top-left"
@@ -1763,18 +1791,19 @@ function CriarPage() {
 
       {/* MODAL FINALIZAÇÃO */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-md">
-          <DialogHeader className="text-center sm:text-center">
+        <DialogContent className="gap-2 rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-md">
+          <DialogHeader className="space-y-0 text-center sm:text-center">
             <DialogTitle className="font-display text-2xl font-medium text-ink">
               Suas Polaroids estão prontas
             </DialogTitle>
-
-            <DialogDescription className="sr-only">
-              Confira as Polaroids selecionadas antes de iniciar o pagamento.
-            </DialogDescription>
           </DialogHeader>
 
-          <div className="my-2">
+          <div className="mb-2 mt-0">
+            {!carrinhoVazio && (
+              <p className="mb-2 text-center text-xs font-medium text-muted-foreground">
+                Revise suas Polaroids
+              </p>
+            )}
             {carrinhoVazio ? (
               <div className="criar-alert-card rounded-2xl border border-dashed border-border bg-paper/55 px-4 py-6 text-center">
                 <p className="text-sm font-medium text-ink">Nenhuma Polaroid selecionada.</p>
@@ -1934,12 +1963,22 @@ function CriarPage() {
                 </div>
 
                 <div className="mt-4 rounded-xl border border-border/70 bg-paper/70 p-3 text-left">
-                  <p className="text-sm font-medium text-ink">
-                    Arquivos liberados em alta qualidade
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Arquivos liberados
                   </p>
-                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <li>PDF pronto para impressão</li>
-                    <li>PNG individuais em alta qualidade</li>
+                  <ul className="mt-2 space-y-1.5">
+                    <li className="flex items-center gap-2 text-sm text-ink">
+                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      PDF completo para impressão
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-ink">
+                      <FileImage className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      PNG individual de cada Polaroid
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-ink">
+                      <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      Arquivos em alta resolução
+                    </li>
                   </ul>
                 </div>
               </>
@@ -1964,7 +2003,7 @@ function CriarPage() {
 
           {!carrinhoVazio && (
             <p className="text-center text-xs text-muted-foreground">
-              Você só paga depois de visualizar.
+              Pagamento seguro. Seus arquivos são liberados após a confirmação.
             </p>
           )}
 

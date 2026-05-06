@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Clock3, Download, FileText, Loader2, RefreshCw, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  Copy,
+  Check,
+  Download,
+  FileText,
+  Loader2,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
 import { z } from "zod";
 import { getOrderStatus } from "../server/fns/getOrderStatus";
 import { getDownloadUrls } from "../server/fns/getDownloadUrls";
@@ -35,7 +45,9 @@ export const Route = createFileRoute("/pedido/$orderId")({
 type DBStatus = "pending" | "paid" | "failed" | "expired" | null;
 type MPReturn = z.infer<typeof mpSearchSchema>["mp_return"];
 
-function getMPHint(mpReturn: MPReturn): "success" | "pending" | "failed" | null {
+function getMPHint(
+  mpReturn: MPReturn,
+): "success" | "pending" | "failed" | null {
   if (mpReturn === "success") return "success";
   if (mpReturn === "pending") return "pending";
   if (mpReturn === "failure") return "failed";
@@ -64,6 +76,9 @@ function PedidoPage() {
   const [pngUrls, setPngUrls] = useState<DownloadUrlItem[] | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingUrls, setLoadingUrls] = useState(false);
+  const [orderItems, setOrderItems] = useState<
+    { position: number; polaroidSizeId: string }[] | null
+  >(null);
 
   // Geração manual (dev/retry)
   const [isGenerating, setIsGenerating] = useState(false);
@@ -85,7 +100,9 @@ function PedidoPage() {
         setPngUrls(result.pngUrls);
         setPdfUrl(result.pdfUrl);
       })
-      .catch((err) => console.error("[pedido] Erro ao buscar download URLs:", err))
+      .catch((err) =>
+        console.error("[pedido] Erro ao buscar download URLs:", err),
+      )
       .finally(() => setLoadingUrls(false));
   }, [filesReady, orderId]);
 
@@ -100,7 +117,9 @@ function PedidoPage() {
       setPollTimedOut(false);
       setRetryKey((k) => k + 1);
     } catch (err) {
-      setGenerationError(err instanceof Error ? err.message : "Erro desconhecido");
+      setGenerationError(
+        err instanceof Error ? err.message : "Erro desconhecido",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -127,6 +146,7 @@ function PedidoPage() {
         setDbStatus(result.status as DBStatus);
         setQuantity(result.quantity);
         setTotalCentavos(result.totalCentavos);
+        if (result.items) setOrderItems(result.items);
 
         if (result.status === "paid") {
           setFilesReady(result.filesReady);
@@ -165,12 +185,14 @@ function PedidoPage() {
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
               <CheckCircle2 className="h-7 w-7 text-green-600" />
             </div>
-            <h1 className="font-display text-2xl font-medium text-ink">Pagamento confirmado!</h1>
+            <h1 className="font-display text-2xl font-medium text-ink">
+              Pagamento confirmado!
+            </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Suas Polaroids estão prontas para download.
             </p>
             {quantity != null && totalCentavos != null && (
-              <div className="mt-4 flex items-center justify-center gap-6 rounded-xl border border-border/70 bg-cream/60 px-4 py-3 text-sm">
+              <div className="mx-auto mt-4 flex w-fit items-center justify-center gap-5 rounded-xl border border-border/70 bg-cream/60 px-5 py-3 text-sm">
                 <span className="text-muted-foreground">
                   {quantity} {quantity === 1 ? "Polaroid" : "Polaroids"}
                 </span>
@@ -181,62 +203,103 @@ function PedidoPage() {
             )}
           </div>
 
-          {/* Botão PDF */}
-          {pdfUrl && (
-            <div className="mt-4">
-              <a
-                href={pdfUrl}
-                download="polaroids.pdf"
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-5 py-3.5 text-sm font-semibold text-paper shadow-soft transition-all hover:bg-ink/90 active:scale-[0.98]"
-              >
-                <FileText className="h-4 w-4" />
-                Baixar PDF completo (todas as Polaroids)
-              </a>
-            </div>
-          )}
-
-          {/* Lista de PNGs individuais */}
+          {/* Arquivos de download */}
           {loadingUrls ? (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-border bg-paper p-5 text-sm text-muted-foreground shadow-soft">
               <Loader2 className="h-4 w-4 animate-spin" />
               Preparando links de download…
             </div>
-          ) : pngUrls && pngUrls.length > 0 ? (
+          ) : pdfUrl || (pngUrls && pngUrls.length > 0) ? (
             <div className="mt-4 rounded-2xl border border-border bg-paper p-5 shadow-soft">
-              <h2 className="font-display text-lg font-medium text-ink">Download individual</h2>
+              <h2 className="font-display text-lg font-medium text-ink">
+                Arquivos disponíveis
+              </h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Cada PNG está em alta resolução (300 DPI), pronto para impressão.
+                Baixe o PDF completo para impressão ou salve cada PNG
+                individualmente.
               </p>
 
-              <div className="mt-4 space-y-3">
-                {pngUrls.map((item) => (
-                  <div
-                    key={item.position}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-cream/40 px-4 py-3"
-                  >
-                    <p className="text-sm font-medium text-ink">
-                      Polaroid {item.position + 1}
-                    </p>
+              {pdfUrl && (
+                <div className="mt-5 rounded-xl border border-border/70 bg-cream/40 px-4 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-left">
+                      <h3 className="text-sm font-semibold text-ink">
+                        PDF completo
+                      </h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Pronto para impressão com todas as Polaroids.
+                      </p>
+                    </div>
                     <a
-                      href={item.signedUrl}
-                      download={`polaroid-${item.position + 1}.png`}
-                      className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-paper px-3 py-2 text-xs font-medium text-ink shadow-soft transition-all hover:bg-cream active:scale-[0.97]"
+                      href={pdfUrl}
+                      download="polaroids.pdf"
+                      className="inline-flex min-w-52 items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-5 py-3 text-sm font-semibold text-paper shadow-soft transition-all hover:bg-ink/90 active:scale-[0.98]"
                     >
-                      <Download className="h-3.5 w-3.5" />
-                      PNG
+                      <FileText className="h-4 w-4" />
+                      Baixar PDF completo
                     </a>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {pngUrls && pngUrls.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="text-sm font-semibold text-ink">
+                    Download individual
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Cada PNG está em alta resolução (300 DPI), pronto para
+                    impressão.
+                  </p>
+
+                  <div className="mt-4 space-y-3">
+                    {pngUrls.map((item) => {
+                      const sizeLabel = orderItems?.find(
+                        (o) => o.position === item.position,
+                      )?.polaroidSizeId;
+                      return (
+                        <div
+                          key={item.position}
+                          className="flex items-center gap-3 rounded-xl border border-border/70 bg-cream/40 px-3 py-2.5"
+                        >
+                          <img
+                            src={item.signedUrl}
+                            alt={`Polaroid ${item.position + 1}`}
+                            className="h-10 w-10 shrink-0 rounded-md border border-border/50 object-cover shadow-soft"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-ink">
+                              Polaroid {item.position + 1}
+                              {sizeLabel && (
+                                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                                  — {sizeLabel} cm
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <a
+                            href={item.signedUrl}
+                            download={`polaroid-${item.position + 1}.png`}
+                            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-paper px-3 py-2 text-xs font-medium text-ink shadow-soft transition-all hover:bg-cream active:scale-[0.97]"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            PNG
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ) : null}
 
           <div className="mt-4 text-center">
             <Link
               to="/"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-border bg-paper/70 px-6 text-sm font-medium text-ink shadow-soft transition-all hover:bg-cream hover:shadow-polaroid active:scale-[0.98]"
             >
-              Criar mais Polaroids
+              Criar novo pedido
             </Link>
           </div>
         </div>
@@ -254,7 +317,9 @@ function PedidoPage() {
             <CheckCircle2 className="h-7 w-7 text-green-600" />
           </div>
 
-          <h1 className="font-display text-2xl font-medium text-ink">Pagamento confirmado!</h1>
+          <h1 className="font-display text-2xl font-medium text-ink">
+            Pagamento confirmado!
+          </h1>
 
           {isGenerating ? (
             <>
@@ -268,10 +333,13 @@ function PedidoPage() {
           ) : pollTimedOut ? (
             <>
               <p className="mt-3 text-sm text-muted-foreground">
-                Os arquivos ainda não foram gerados. Clique abaixo para preparar suas Polaroids agora.
+                Os arquivos ainda não foram gerados. Clique abaixo para preparar
+                suas Polaroids agora.
               </p>
               {generationError && (
-                <p className="mt-2 text-xs text-destructive">{generationError}</p>
+                <p className="mt-2 text-xs text-destructive">
+                  {generationError}
+                </p>
               )}
               <button
                 type="button"
@@ -285,13 +353,20 @@ function PedidoPage() {
           ) : (
             <>
               <p className="mt-3 text-sm text-muted-foreground">
-                Estamos montando suas Polaroids em alta resolução…
+                Estamos gerando seus arquivos em alta resolução.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground/70">
+                Não feche esta página.
               </p>
 
               {generationError ? (
                 <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-left">
-                  <p className="text-xs font-medium text-destructive">Erro na geração:</p>
-                  <p className="mt-0.5 break-all text-xs text-destructive/80">{generationError}</p>
+                  <p className="text-xs font-medium text-destructive">
+                    Erro na geração:
+                  </p>
+                  <p className="mt-0.5 break-all text-xs text-destructive/80">
+                    {generationError}
+                  </p>
                   <button
                     type="button"
                     onClick={handleTriggerGeneration}
@@ -312,14 +387,16 @@ function PedidoPage() {
                       />
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleTriggerGeneration}
-                    className="mt-6 inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    Forçar geração manual
-                  </button>
+                  {import.meta.env.DEV && (
+                    <button
+                      type="button"
+                      onClick={handleTriggerGeneration}
+                      className="mt-6 inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Forçar geração manual
+                    </button>
+                  )}
                 </>
               )}
             </>
@@ -339,10 +416,13 @@ function PedidoPage() {
             <XCircle className="h-7 w-7 text-red-600" />
           </div>
 
-          <h1 className="font-display text-2xl font-medium text-ink">Pagamento não aprovado</h1>
+          <h1 className="font-display text-2xl font-medium text-ink">
+            Pagamento não aprovado
+          </h1>
 
           <p className="mt-3 text-sm text-muted-foreground">
-            Não foi possível processar seu pagamento. Você pode tentar novamente.
+            Não foi possível processar seu pagamento. Você pode tentar
+            novamente.
           </p>
 
           <OrderRef orderId={orderId} paymentId={search.payment_id} />
@@ -368,7 +448,9 @@ function PedidoPage() {
         </div>
 
         <h1 className="font-display text-2xl font-medium text-ink">
-          {mpHint === "pending" ? "Pagamento em análise" : "Verificando pagamento…"}
+          {mpHint === "pending"
+            ? "Pagamento em análise"
+            : "Estamos confirmando seu pagamento…"}
         </h1>
 
         <p className="mt-3 text-sm text-muted-foreground">
@@ -376,7 +458,7 @@ function PedidoPage() {
             ? "Seu pagamento está sendo processado. Assim que for aprovado, seus arquivos serão liberados aqui."
             : pollTimedOut
               ? "Ainda aguardando confirmação. Se você já pagou, recarregue a página em alguns instantes."
-              : "Confirmando com o banco…"}
+              : "Isso pode levar alguns segundos."}
         </p>
 
         {!pollTimedOut && mpHint !== "pending" && (
@@ -406,10 +488,44 @@ function PedidoPage() {
 
 // ─── Componente auxiliar ──────────────────────────────────────────────────────
 
-function OrderRef({ orderId, paymentId }: { orderId: string; paymentId?: string }) {
+function OrderRef({
+  orderId,
+  paymentId,
+}: {
+  orderId: string;
+  paymentId?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(orderId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="mt-4 space-y-1.5 rounded-lg bg-cream/70 px-3 py-3 text-left text-xs text-muted-foreground">
-      <p className="font-mono">Pedido: {orderId}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-mono">Pedido: {orderId.slice(0, 8)}…</p>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex shrink-0 items-center gap-1 rounded-md border border-border/60 bg-paper px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-cream"
+        >
+          {copied ? (
+            <>
+              <Check className="h-2.5 w-2.5" />
+              Copiado!
+            </>
+          ) : (
+            <>
+              <Copy className="h-2.5 w-2.5" />
+              Copiar
+            </>
+          )}
+        </button>
+      </div>
       {paymentId && <p className="font-mono">Pagamento MP: {paymentId}</p>}
     </div>
   );

@@ -5,5 +5,26 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { loadEnv } from "vite";
 
-export default defineConfig();
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  if (env.VITE_SUPABASE_URL) {
+    process.env.VITE_SUPABASE_URL = env.VITE_SUPABASE_URL;
+  }
+
+  if (env.SUPABASE_SERVICE_ROLE_KEY) {
+    process.env.SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+  }
+
+  if (env.MP_ACCESS_TOKEN) {
+    process.env.MP_ACCESS_TOKEN = env.MP_ACCESS_TOKEN;
+  }
+
+  if (env.MERCADO_PAGO_ACCESS_TOKEN) {
+    process.env.MERCADO_PAGO_ACCESS_TOKEN = env.MERCADO_PAGO_ACCESS_TOKEN;
+  }
+
+  return {};
+});

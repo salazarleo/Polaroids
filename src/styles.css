@@ -225,7 +225,7 @@
     border-radius: 1rem;
   }
 
-  .criar-page button:not(:disabled) {
+  button:not(:disabled) {
     cursor: pointer;
   }
 
@@ -320,10 +320,6 @@
 
     .criar-font-item:hover {
       transform: translateX(2px);
-    }
-
-    .criar-saved-card:hover {
-      transform: translateY(-2px);
     }
 
     .criar-upload-zone:hover {

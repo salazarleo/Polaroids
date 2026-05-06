@@ -1,5 +1,8 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { getUploadUrl } from "../server/fns/getUploadUrl";
+import { createCheckout } from "../server/fns/createCheckout";
+import type { CheckoutItem } from "../types/order";
 import { Button } from "../components/ui/button";
 import {
   Dialog,
@@ -8,19 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
 import { Label } from "../components/ui/label";
 import {
   Upload,
   Pencil,
   Trash2,
   ChevronDown,
-  MoreHorizontal,
   Save,
   Type,
   AlignLeft,
@@ -29,12 +25,11 @@ import {
   AlignJustify,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
   MELHOR_OFERTA_QTD,
-  PRECO_MELHOR_OFERTA_CENTAVOS,
-  PRECO_POLAROID_EXTRA_CENTAVOS,
   PRECO_POLAROID_UNITARIO_CENTAVOS,
   calcularPrecoPolaroidsCentavos,
   formatarPrecoCentavos,
@@ -123,6 +118,9 @@ interface PolaroidSizeDef {
 
 const DEFAULT_CAPTION_SIZE: Size = "md";
 const PREVIEW_VISIBLE_COUNT = 4;
+const MAX_POLAROIDS = 20;
+
+type UploadStatus = "idle" | "uploading" | "done" | "error";
 
 const templates: TemplateDef[] = [
   {
@@ -330,7 +328,9 @@ const polaroidSizes: PolaroidSizeDef[] = [
 
 interface PolaroidItem {
   id: string;
-  photo: string | null;
+  photoLocalUrl: string | null;
+  photoUrl: string | null;
+  uploadStatus: UploadStatus;
   caption: string;
   templateId: TemplateId;
   fontStyleId: FontStyleId | null;
@@ -402,6 +402,19 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
+function getUploadErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object" && error !== null) {
+    const maybeError = error as { message?: unknown; error?: unknown };
+
+    if (typeof maybeError.message === "string") return maybeError.message;
+    if (typeof maybeError.error === "string") return maybeError.error;
+  }
+
+  return "Erro desconhecido";
+}
+
 function newDraft(
   templateId: TemplateId = "amor",
   polaroidSizeId: PolaroidSizeId = "7x10",
@@ -410,7 +423,9 @@ function newDraft(
 
   return {
     id: crypto.randomUUID(),
-    photo: null,
+    photoLocalUrl: null,
+    photoUrl: null,
+    uploadStatus: "idle" as UploadStatus,
     caption: "",
     templateId,
     fontStyleId: null,
@@ -442,9 +457,13 @@ function CriarPage() {
   const [mobileStylesOpen, setMobileStylesOpen] = useState(false);
   const [mobileCaptionEditing, setMobileCaptionEditing] = useState(false);
   const [previewStartIndex, setPreviewStartIndex] = useState(0);
+  const [previewPolaroidId, setPreviewPolaroidId] = useState<string | null>(null);
+  const [draftIdPendenteRemocao, setDraftIdPendenteRemocao] = useState<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
+  const uploadAbortRef = useRef<string | null>(null);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
 
@@ -464,7 +483,6 @@ function CriarPage() {
   const quantidadePolaroids = saved.length;
   const totalPedidoCentavos = calcularPrecoPolaroidsCentavos(quantidadePolaroids);
   const totalPedidoFormatado = formatarPrecoCentavos(totalPedidoCentavos);
-  const quantidadeExtras = Math.max(0, quantidadePolaroids - MELHOR_OFERTA_QTD);
   const valorSemPromocaoCentavos = quantidadePolaroids * PRECO_POLAROID_UNITARIO_CENTAVOS;
   const economiaCentavos = Math.max(0, valorSemPromocaoCentavos - totalPedidoCentavos);
   const economiaFormatada = formatarPrecoCentavos(economiaCentavos);
@@ -472,49 +490,136 @@ function CriarPage() {
     economiaCentavos > 0
       ? `Você economiza ${economiaFormatada} neste pedido.`
       : quantidadePolaroids === 1
-      ? "1 Polaroid por apenas R$ 0,99."
-      : quantidadePolaroids < MELHOR_OFERTA_QTD
-      ? "R$ 0,99 por Polaroid."
-      : "A partir de 5, cada extra continua só R$ 0,99.";
+        ? "1 Polaroid por apenas R$ 0,99."
+        : quantidadePolaroids < MELHOR_OFERTA_QTD
+          ? "R$ 0,99 por Polaroid."
+          : "A partir de 5, cada extra continua só R$ 0,99.";
   const showPreviewControls = saved.length > PREVIEW_VISIBLE_COUNT;
   const canGoPrev = previewStartIndex > 0;
   const canGoNext = previewStartIndex + PREVIEW_VISIBLE_COUNT < saved.length;
+  const carrinhoVazio = quantidadePolaroids === 0;
+  const previewPolaroid = previewPolaroidId
+    ? (saved.find((item) => item.id === previewPolaroidId) ?? null)
+    : null;
+  const previewPolaroidSize = previewPolaroid
+    ? (polaroidSizes.find((size) => size.id === previewPolaroid.polaroidSizeId) ?? polaroidSizes[0])
+    : polaroidSizes[0];
+  const modalPreviewScale = Math.max(1, previewPolaroidSize.previewScale);
+  const previewTemplate = previewPolaroid
+    ? (templates.find((template) => template.id === previewPolaroid.templateId) ?? templates[0])
+    : templates[0];
+  const previewFontStyle = previewPolaroid?.fontStyleId
+    ? fontStyles.find((style) => style.id === previewPolaroid.fontStyleId)
+    : null;
 
   useEffect(() => {
     const maxPreviewStartIndex = Math.max(0, saved.length - PREVIEW_VISIBLE_COUNT);
 
     setPreviewStartIndex((current) => Math.min(current, maxPreviewStartIndex));
-  }, [saved.length]);
+    setPreviewPolaroidId((current) => {
+      if (!current) return current;
+
+      return saved.some((item) => item.id === current) ? current : null;
+    });
+  }, [saved]);
 
   function pickFile() {
     fileRef.current?.click();
+  }
+
+  async function uploadFile(file: File, localUrl: string, uploadId: string) {
+    try {
+      const result = await getUploadUrl({
+        data: { fileName: file.name, contentType: file.type },
+      });
+
+      if (!result.signedUrl) {
+        throw new Error("URL assinada retornou vazia. Reinicie o dev server.");
+      }
+
+      const body = new FormData();
+      body.append("cacheControl", "3600");
+      body.append("", file);
+
+      const response = await fetch(result.signedUrl, {
+        method: "PUT",
+        body,
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text().catch(() => "");
+        throw new Error(
+          `Supabase upload falhou (${response.status}): ${responseText || response.statusText}`,
+        );
+      }
+
+      if (uploadAbortRef.current !== uploadId) return;
+
+      setDraft((d) => {
+        if (d.photoLocalUrl !== localUrl) return d;
+        return { ...d, photoUrl: result.publicUrl, uploadStatus: "done" };
+      });
+    } catch (error) {
+      const message = getUploadErrorMessage(error);
+
+      console.error(`[upload-polaroid] Falha no upload da foto: ${message}`, {
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size,
+      });
+
+      if (uploadAbortRef.current !== uploadId) return;
+
+      setDraft((d) => {
+        if (d.photoLocalUrl !== localUrl) return d;
+        return { ...d, uploadStatus: "error" };
+      });
+      setStyleWarning(`O upload falhou: ${message}`);
+    }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    if (!file.type.startsWith("image/")) {
+      setStyleWarning("Apenas imagens JPG ou PNG são aceitas");
+      e.target.value = "";
+      return;
+    }
 
-    reader.onload = () => {
-      setDraft((d) => ({
+    if (file.size > 10 * 1024 * 1024) {
+      setStyleWarning("A imagem deve ter no máximo 10 MB");
+      e.target.value = "";
+      return;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    const uploadId = crypto.randomUUID();
+    uploadAbortRef.current = uploadId;
+
+    setDraft((d) => {
+      if (d.photoLocalUrl) URL.revokeObjectURL(d.photoLocalUrl);
+      return {
         ...d,
-        photo: reader.result as string,
+        photoLocalUrl: localUrl,
+        photoUrl: null,
+        uploadStatus: "uploading",
         imagePosX: 50,
         imagePosY: 50,
-      }));
+      };
+    });
 
-      setStyleWarning("");
-      setIsAdjustingImage(false);
-      setMobileCaptionEditing(false);
-    };
-
-    reader.readAsDataURL(file);
+    setStyleWarning("");
+    setIsAdjustingImage(false);
+    setMobileCaptionEditing(false);
     e.target.value = "";
+
+    uploadFile(file, localUrl, uploadId);
   }
 
   function selecionarFonte(style: FontStyleDef) {
-    if (!draft.photo) {
+    if (!draft.photoLocalUrl) {
       setStyleWarning("Adicione primeiro uma imagem");
       return;
     }
@@ -536,7 +641,24 @@ function CriarPage() {
   }
 
   function concluir() {
-    if (!draft.photo) return;
+    if (!draft.photoLocalUrl) return;
+
+    if (draft.uploadStatus === "uploading") {
+      setStyleWarning("Aguarde, o upload da foto ainda está em andamento...");
+      return;
+    }
+
+    if (draft.uploadStatus === "error") {
+      setStyleWarning("O upload falhou. Tente selecionar a foto novamente.");
+      return;
+    }
+
+    const isEditing = saved.some((x) => x.id === draft.id);
+
+    if (!isEditing && saved.length >= MAX_POLAROIDS) {
+      setStyleWarning(`Máximo de ${MAX_POLAROIDS} Polaroids por pedido`);
+      return;
+    }
 
     setSaved((s) => {
       const idx = s.findIndex((x) => x.id === draft.id);
@@ -575,30 +697,51 @@ function CriarPage() {
     setPreviewStartIndex((current) => Math.min(maxPreviewStartIndex, current + 1));
   }
 
-  function iniciarPagamento() {
+  function abrirPreviewPolaroid(id: string) {
+    setPreviewPolaroidId(id);
+  }
+
+  function fecharPreviewPolaroid() {
+    setPreviewPolaroidId(null);
+  }
+
+  async function iniciarPagamento() {
     if (saved.length === 0) {
       setStyleWarning("Adicione pelo menos uma Polaroid");
       return;
     }
 
-    const payload = {
-      produto: "polaroids-digitais",
-      items: saved,
-      quantity: saved.length,
-      amountCentavos: totalPedidoCentavos,
-      amountFormatted: totalPedidoFormatado,
-      currency: "BRL",
-      formats: ["pdf_a4", "png"],
-      pricing: {
-        bestOfferQuantity: MELHOR_OFERTA_QTD,
-        bestOfferAmountCentavos: PRECO_MELHOR_OFERTA_CENTAVOS,
-        extraUnitPriceCentavos: PRECO_POLAROID_EXTRA_CENTAVOS,
-        extras: quantidadeExtras,
-      },
-    };
+    const itemSemUpload = saved.find((x) => !x.photoUrl || x.uploadStatus !== "done");
+    if (itemSemUpload) {
+      setStyleWarning("Uma ou mais fotos ainda não foram enviadas. Aguarde e tente novamente.");
+      return;
+    }
 
-    console.log("Payload para pagamento:", payload);
-    // TODO: integrar com backend para criar pedido e iniciar checkout
+    setIsCheckingOut(true);
+
+    try {
+      const items: CheckoutItem[] = saved.map((x) => ({
+        photoUrl: x.photoUrl!,
+        caption: x.caption,
+        templateId: x.templateId,
+        fontStyleId: x.fontStyleId,
+        fontWeightId: x.fontWeightId,
+        polaroidSizeId: x.polaroidSizeId,
+        size: x.size,
+        align: x.align,
+        imagePosX: x.imagePosX,
+        imagePosY: x.imagePosY,
+      }));
+
+      const result = await createCheckout({ data: { items } });
+
+      window.location.href = result.checkoutUrl;
+    } catch (err) {
+      console.error("[checkout] Erro ao criar pedido", err);
+      setStyleWarning("Não foi possível iniciar o pagamento. Tente novamente.");
+    } finally {
+      setIsCheckingOut(false);
+    }
   }
 
   function editarSalva(item: PolaroidItem) {
@@ -608,12 +751,62 @@ function CriarPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function removerSalva(id: string) {
+  function removerPolaroidDoCarrinho(id: string) {
     setSaved((s) => s.filter((x) => x.id !== id));
   }
 
+  function limparDraftAtual() {
+    setDraft((d) => {
+      if (d.photoLocalUrl) URL.revokeObjectURL(d.photoLocalUrl);
+      return {
+        ...d,
+        photoLocalUrl: null,
+        photoUrl: null,
+        uploadStatus: "idle" as UploadStatus,
+        caption: "",
+        fontStyleId: null,
+        fontWeightId: "regular",
+      };
+    });
+    setIsAdjustingImage(false);
+    setMobileCaptionEditing(false);
+  }
+
+  function removerDraftAtual() {
+    const draftJaEstaSalvo = saved.some((item) => item.id === draft.id);
+
+    if (!draftJaEstaSalvo) {
+      limparDraftAtual();
+      return;
+    }
+
+    setDraftIdPendenteRemocao(draft.id);
+  }
+
+  function cancelarRemocaoDraft() {
+    setDraftIdPendenteRemocao(null);
+  }
+
+  function confirmarRemocaoDraft() {
+    if (!draftIdPendenteRemocao) return;
+
+    removerPolaroidDoCarrinho(draftIdPendenteRemocao);
+    setDraftIdPendenteRemocao(null);
+    setStyleWarning("");
+    setIsAdjustingImage(false);
+    setMobileCaptionEditing(false);
+    setDraft((d) => newDraft(d.templateId, d.polaroidSizeId));
+  }
+
+  function removerPolaroidSelecionada() {
+    if (!previewPolaroidId) return;
+
+    removerPolaroidDoCarrinho(previewPolaroidId);
+    setPreviewPolaroidId(null);
+  }
+
   function onStartImageDrag(e: React.PointerEvent<HTMLDivElement>) {
-    if (!isAdjustingImage || !draft.photo) return;
+    if (!isAdjustingImage || !draft.photoLocalUrl) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
 
@@ -953,7 +1146,9 @@ function CriarPage() {
 
                             <span
                               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]"
-                              style={{ fontSize: `${measurementLabelFontSizePx}px` }}
+                              style={{
+                                fontSize: `${measurementLabelFontSizePx}px`,
+                              }}
                             >
                               {selectedPolaroidSize.heightCm} cm
                             </span>
@@ -969,7 +1164,7 @@ function CriarPage() {
                               height: `${selectedPolaroidSize.previewHeightCm}cm`,
                             }}
                           >
-                            {draft.photo ? (
+                            {draft.photoLocalUrl ? (
                               <div
                                 className={cn(
                                   "relative w-full overflow-hidden bg-muted transition-all duration-300",
@@ -986,7 +1181,7 @@ function CriarPage() {
                                 onLostPointerCapture={onEndImageDrag}
                               >
                                 <img
-                                  src={draft.photo}
+                                  src={draft.photoLocalUrl}
                                   alt="Sua foto"
                                   className="criar-photo-enter h-full w-full object-cover"
                                   style={{
@@ -1021,6 +1216,24 @@ function CriarPage() {
                               </button>
                             )}
 
+                            {/* Overlay de upload — cobre a Polaroid inteira enquanto a foto está sendo enviada */}
+                            {draft.photoLocalUrl && draft.uploadStatus === "uploading" && (
+                              <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-[4px] bg-[#fefdf9]/80 backdrop-blur-[3px]">
+                                <span
+                                  className="flex flex-col items-center gap-2"
+                                  style={{
+                                    transform: `scale(${uploadPlaceholderScale})`,
+                                    transformOrigin: "center",
+                                  }}
+                                >
+                                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-ink/20 border-t-ink/65" />
+                                  <span className="text-[0.7rem] font-medium tracking-wide text-ink/65">
+                                    Preparando sua Polaroid…
+                                  </span>
+                                </span>
+                              </div>
+                            )}
+
                             <div
                               className={cn(
                                 "absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-visible px-2 text-ink/85 leading-tight",
@@ -1031,18 +1244,20 @@ function CriarPage() {
                               }}
                             >
                               {isAdjustingImage ? (
-                                <Button
-                                  type="button"
-                                  onClick={() => setIsAdjustingImage(false)}
-                                  className="criar-action-button group h-9 w-[92px] rounded-md border border-transparent bg-[#111217] px-0 text-sm font-medium text-white shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
+                                <div
+                                  className="inline-flex"
                                   style={{
                                     transform: `scale(${1 / selectedPolaroidSize.previewScale})`,
                                   }}
                                 >
-                                  <span className="transition-colors group-hover:text-[#c8a36c]">
+                                  <Button
+                                    type="button"
+                                    onClick={() => setIsAdjustingImage(false)}
+                                    className="h-9 w-[92px] cursor-pointer rounded-md border border-transparent bg-black px-0 text-sm font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
+                                  >
                                     Pronto
-                                  </span>
-                                </Button>
+                                  </Button>
+                                </div>
                               ) : mobileCaptionEditing ? (
                                 <input
                                   autoFocus
@@ -1109,7 +1324,9 @@ function CriarPage() {
 
                           <span
                             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap bg-cream px-2 text-[11px] font-medium text-muted-foreground"
-                            style={{ fontSize: `${measurementLabelFontSizePx}px` }}
+                            style={{
+                              fontSize: `${measurementLabelFontSizePx}px`,
+                            }}
                           >
                             {selectedPolaroidSize.widthCm} cm
                           </span>
@@ -1119,7 +1336,7 @@ function CriarPage() {
                   </div>
                 </div>
 
-                {draft.photo && !isAdjustingImage && (
+                {draft.photoLocalUrl && !isAdjustingImage && (
                   <div className="criar-fade-up relative z-20 flex shrink-0 flex-col items-center gap-2">
                     <div className="flex justify-center gap-4">
                       <div className="flex w-12 flex-col items-center gap-1">
@@ -1180,7 +1397,7 @@ function CriarPage() {
                         </span>
                       </div>
 
-                                            <div className="flex w-12 flex-col items-center gap-1">
+                      <div className="flex w-12 flex-col items-center gap-1">
                         <button
                           type="button"
                           onClick={pickFile}
@@ -1198,17 +1415,7 @@ function CriarPage() {
                       <div className="flex w-12 flex-col items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => {
-                            setDraft((d) => ({
-                              ...d,
-                              photo: null,
-                              caption: "",
-                              fontStyleId: null,
-                              fontWeightId: "regular",
-                            }));
-                            setIsAdjustingImage(false);
-                            setMobileCaptionEditing(false);
-                          }}
+                          onClick={removerDraftAtual}
                           className="criar-action-button group flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-[#111217] text-zinc-300 shadow-soft transition-all hover:border-[#2a2f3a] hover:bg-[#171923]"
                           aria-label="Remover"
                           title="Remover"
@@ -1309,37 +1516,12 @@ function CriarPage() {
                           className="relative flex items-start justify-center"
                           style={gallerySlotStyle}
                         >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                className="criar-action-button absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-black text-white shadow-soft transition-all hover:border-white hover:bg-ink hover:shadow-polaroid"
-                                aria-label="Mais opções"
-                              >
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                              </button>
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent
-                              align="end"
-                              className="min-w-32 border-border bg-paper"
-                            >
-                              <DropdownMenuItem
-                                onClick={() => editarSalva(item)}
-                                className="cursor-pointer"
-                              >
-                                <Pencil className="h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onClick={() => removerSalva(item.id)}
-                                className="cursor-pointer text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Remover
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <button
+                            type="button"
+                            onClick={() => editarSalva(item)}
+                            className="absolute inset-0 z-10 rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+                            aria-label="Editar Polaroid"
+                          />
 
                           <div
                             className="origin-top-left"
@@ -1364,9 +1546,9 @@ function CriarPage() {
                                   height: `${itemPolaroidSize.imageHeightCm}cm`,
                                 }}
                               >
-                                {item.photo && (
+                                {item.photoLocalUrl && (
                                   <img
-                                    src={item.photo}
+                                    src={item.photoLocalUrl}
                                     alt=""
                                     className="h-full w-full object-cover"
                                     style={{
@@ -1407,6 +1589,44 @@ function CriarPage() {
         </div>
       </main>
 
+      {/* MODAL CONFIRMAÇÃO REMOÇÃO */}
+      <Dialog
+        open={draftIdPendenteRemocao !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) cancelarRemocaoDraft();
+        }}
+      >
+        <DialogContent className="rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-sm">
+          <DialogHeader className="text-center sm:text-center">
+            <DialogTitle className="font-display text-2xl font-medium text-ink">
+              Apagar Polaroid?
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              Tem certeza que quer apagar a Polaroid?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={cancelarRemocaoDraft}
+              className="h-10 rounded-full border-border bg-paper/70 px-8 text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:text-ink hover:shadow-polaroid active:scale-[0.98] sm:min-w-32"
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              type="button"
+              onClick={confirmarRemocaoDraft}
+              className="h-10 rounded-full bg-ink px-8 text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98] sm:min-w-32"
+            >
+              Confirmar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* MODAL FINALIZAÇÃO */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-md">
@@ -1415,162 +1635,319 @@ function CriarPage() {
               Suas Polaroids estão prontas
             </DialogTitle>
 
-        
+            <DialogDescription className="sr-only">
+              Confira as Polaroids selecionadas antes de iniciar o pagamento.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="my-2">
-            <div className="flex items-center justify-center gap-2">
-              {showPreviewControls && (
-                <button
-                  type="button"
-                  onClick={handlePrevPreview}
-                  disabled={!canGoPrev}
-                  className={cn(
-                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
-                    !canGoPrev &&
-                      "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
-                  )}
-                  aria-label="Polaroid anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-              )}
-
-              <div
-                className={cn(
-                  "overflow-hidden",
-                  showPreviewControls && "relative min-w-0 flex-1 rounded-xl",
-                )}
-              >
+            {carrinhoVazio ? (
+              <div className="criar-alert-card rounded-2xl border border-dashed border-border bg-paper/55 px-4 py-6 text-center">
+                <p className="text-sm font-medium text-ink">Nenhuma Polaroid selecionada.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Feche este modal para criar ou adicionar uma nova Polaroid.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
                 {showPreviewControls && (
-                  <>
-                    <span className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-5 bg-gradient-to-r from-[#f1e7da] to-transparent" />
-                    <span className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-5 bg-gradient-to-l from-[#f1e7da] to-transparent" />
-                  </>
+                  <button
+                    type="button"
+                    onClick={handlePrevPreview}
+                    disabled={!canGoPrev}
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
+                      !canGoPrev &&
+                        "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
+                    )}
+                    aria-label="Polaroid anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
                 )}
 
                 <div
                   className={cn(
-                    "motion-safe:transition-[margin-left,transform,opacity] motion-safe:duration-500 motion-safe:ease-out",
-                    showPreviewControls
-                      ? "flex w-full will-change-[margin-left]"
-                      : "flex justify-center gap-3 overflow-hidden",
+                    "overflow-hidden",
+                    showPreviewControls && "relative min-w-0 flex-1 rounded-xl",
                   )}
-                  style={showPreviewControls ? { marginLeft: `${previewStartIndex * -25}%` } : {}}
                 >
-                  {saved.map((item) => {
-                    const itemPolaroidSize =
-                      polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
-                      polaroidSizes[0];
+                  {showPreviewControls && (
+                    <>
+                      <span className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-5 bg-gradient-to-r from-[#f1e7da] to-transparent" />
+                      <span className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-5 bg-gradient-to-l from-[#f1e7da] to-transparent" />
+                    </>
+                  )}
 
-                    const itemFontStyle = item.fontStyleId
-                      ? fontStyles.find((style) => style.id === item.fontStyleId)
-                      : null;
+                  <div
+                    className={cn(
+                      "motion-safe:transition-[margin-left,transform,opacity] motion-safe:duration-500 motion-safe:ease-out",
+                      showPreviewControls
+                        ? "flex w-full will-change-[margin-left]"
+                        : "flex justify-center gap-3 overflow-hidden",
+                    )}
+                    style={showPreviewControls ? { marginLeft: `${previewStartIndex * -25}%` } : {}}
+                  >
+                    {saved.map((item, index) => {
+                      const itemPolaroidSize =
+                        polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
+                        polaroidSizes[0];
 
-                    return (
-                      <div
-                        key={item.id}
-                        className={cn(
-                          "shrink-0 transition-all duration-300 ease-out",
-                          showPreviewControls ? "basis-1/4 px-1" : "w-16 sm:w-20",
-                        )}
-                      >
-                        <div className="polaroid w-full !p-1.5 !pb-2 animate-in fade-in-0 zoom-in-95 duration-300 ease-out transition-all">
-                          <span className="absolute left-1.5 top-1.5 z-10 rounded-sm bg-paper/95 px-1 py-0.5 text-[8px] font-semibold leading-none text-ink shadow-soft">
-                            {itemPolaroidSize.label} cm
-                          </span>
+                      const itemFontStyle = item.fontStyleId
+                        ? fontStyles.find((style) => style.id === item.fontStyleId)
+                        : null;
 
-                          <div className="aspect-square overflow-hidden bg-muted">
-                            {item.photo && (
-                              <img
-                                src={item.photo}
-                                alt=""
-                                className="h-full w-full object-cover transition-transform duration-500 ease-out"
-                                style={{
-                                  objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
-                                }}
-                              />
-                            )}
-                          </div>
-
-                          <p
-                            className={cn(
-                              "mt-1 flex min-h-[1.15rem] items-center justify-center overflow-hidden text-center text-[8px] leading-[1.15] text-ink/85",
-                              itemFontStyle?.fontClass,
-                            )}
-                            title={item.caption}
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "shrink-0 transition-all duration-300 ease-out",
+                            showPreviewControls ? "basis-1/4 px-1" : "w-16 sm:w-20",
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => abrirPreviewPolaroid(item.id)}
+                            className="group block w-full cursor-pointer rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-[#f1e7da] focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f1e7da]"
+                            aria-label={`Abrir prévia da Polaroid ${index + 1}`}
                           >
-                            <span className="block max-w-full overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                              {item.caption}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                            <div className="polaroid w-full !p-1.5 !pb-2 animate-in fade-in-0 zoom-in-95 duration-300 ease-out transition-[box-shadow,filter] group-hover:brightness-[0.98]">
+                              <span className="absolute left-1.5 top-1.5 z-10 rounded-sm bg-paper/95 px-1 py-0.5 text-[8px] font-semibold leading-none text-ink shadow-soft">
+                                {itemPolaroidSize.label} cm
+                              </span>
 
-              {showPreviewControls && (
-                <button
-                  type="button"
-                  onClick={handleNextPreview}
-                  disabled={!canGoNext}
-                  className={cn(
-                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
-                    !canGoNext &&
-                      "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
-                  )}
-                  aria-label="Próxima Polaroid"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+                              <div className="aspect-square overflow-hidden bg-muted">
+                                {item.photoLocalUrl && (
+                                  <img
+                                    src={item.photoLocalUrl}
+                                    alt=""
+                                    className="h-full w-full object-cover transition-transform duration-500 ease-out"
+                                    style={{
+                                      objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                    }}
+                                  />
+                                )}
+                              </div>
+
+                              <p
+                                className={cn(
+                                  "mt-1 flex min-h-[1.15rem] items-center justify-center overflow-hidden text-center text-[8px] leading-[1.15] text-ink/85",
+                                  itemFontStyle?.fontClass,
+                                )}
+                                title={item.caption}
+                              >
+                                <span className="block max-w-full overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                                  {item.caption}
+                                </span>
+                              </p>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {showPreviewControls && (
+                  <button
+                    type="button"
+                    onClick={handleNextPreview}
+                    disabled={!canGoNext}
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
+                      !canGoNext &&
+                        "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
+                    )}
+                    aria-label="Próxima Polaroid"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-border/80 bg-paper/60 p-4 shadow-soft transition-all duration-300 ease-out">
-            <div className="flex items-center justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">Quantidade</span>
-              <span className="font-medium text-ink">
-                {quantidadePolaroids} {quantidadePolaroids === 1 ? "Polaroid" : "Polaroids"}
-              </span>
-            </div>
-
-            <div className="mt-4 border-t border-border/70 pt-4">
-              <div className="rounded-2xl border border-border/70 bg-cream/70 p-4 text-center shadow-soft transition-all duration-300 ease-out animate-in fade-in-0 zoom-in-95">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Total do pedido
+            {carrinhoVazio ? (
+              <div className="criar-alert-card rounded-xl border border-dashed border-border bg-paper/70 p-4 text-center">
+                <p className="text-sm font-medium text-ink">Nenhuma Polaroid selecionada.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  O botão de pagamento fica indisponível até haver uma Polaroid no carrinho.
                 </p>
-
-                <p className="mt-1 text-3xl font-bold tracking-tight text-ink">
-                  {totalPedidoFormatado}
-                </p>
-
-                <p className="mt-1 text-xs font-medium text-sepia">{mensagemEconomia}</p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-muted-foreground">Quantidade</span>
+                  <span className="font-medium text-ink">
+                    {quantidadePolaroids} {quantidadePolaroids === 1 ? "Polaroid" : "Polaroids"}
+                  </span>
+                </div>
 
-            <div className="mt-4 rounded-xl border border-border/70 bg-paper/70 p-3 text-left">
-              <p className="text-sm font-medium text-ink">Arquivos liberados em alta qualidade</p>
-              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                <li>PDF pronto para impressão</li>
-                <li>PNG individuais em alta qualidade</li>
-              </ul>
-            </div>
+                <div className="mt-4 border-t border-border/70 pt-4">
+                  <div className="rounded-2xl border border-border/70 bg-cream/70 p-4 text-center shadow-soft transition-all duration-300 ease-out animate-in fade-in-0 zoom-in-95">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Total do pedido
+                    </p>
+
+                    <p className="mt-1 text-3xl font-bold tracking-tight text-ink">
+                      {totalPedidoFormatado}
+                    </p>
+
+                    <p className="mt-1 text-xs font-medium text-sepia">{mensagemEconomia}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-border/70 bg-paper/70 p-3 text-left">
+                  <p className="text-sm font-medium text-ink">
+                    Arquivos liberados em alta qualidade
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                    <li>PDF pronto para impressão</li>
+                    <li>PNG individuais em alta qualidade</li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
 
           <Button
             onClick={iniciarPagamento}
-            className="h-12 w-full cursor-pointer rounded-full bg-ink text-base font-medium text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98]"
+            disabled={carrinhoVazio || isCheckingOut}
+            className={cn(
+              "h-12 w-full cursor-pointer rounded-full bg-ink text-base font-medium text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98]",
+              (carrinhoVazio || isCheckingOut) &&
+                "cursor-not-allowed bg-ink/35 text-paper/80 hover:bg-ink/35 hover:shadow-soft active:scale-100",
+            )}
           >
-            Pagar {totalPedidoFormatado} e liberar Polaroids
+            {carrinhoVazio
+              ? "Nenhuma Polaroid para pagar"
+              : isCheckingOut
+                ? "Criando pedido..."
+                : `Pagar ${totalPedidoFormatado} e liberar Polaroids`}
           </Button>
 
-          <p className="text-center text-xs text-muted-foreground">
-            Você só paga depois de visualizar.
-          </p>
+          {!carrinhoVazio && (
+            <p className="text-center text-xs text-muted-foreground">
+              Você só paga depois de visualizar.
+            </p>
+          )}
 
+          {previewPolaroid && (
+            <div
+              className="absolute inset-0 z-[60] flex items-center justify-center rounded-2xl bg-black/35 p-3 backdrop-blur-[1px] animate-in fade-in-0 duration-200"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="polaroid-preview-title"
+            >
+              <div
+                key={previewPolaroid.id}
+                className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[26rem] flex-col overflow-hidden rounded-2xl border border-border bg-[#f1e7da] p-4 shadow-polaroid animate-in zoom-in-95 duration-200 sm:p-5"
+              >
+                <button
+                  type="button"
+                  onClick={fecharPreviewPolaroid}
+                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-black text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  aria-label="Fechar prévia"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.25} />
+                </button>
+
+                <div className="pr-10 text-center sm:pr-0">
+                  <h3
+                    id="polaroid-preview-title"
+                    className="font-display text-xl font-medium text-ink"
+                  >
+                    Prévia da Polaroid
+                  </h3>
+                </div>
+
+                <div className="mt-4 flex min-h-0 justify-center overflow-auto px-1 py-2">
+                  <div
+                    className="shrink-0"
+                    style={{
+                      width: `${previewPolaroidSize.widthCm * modalPreviewScale}cm`,
+                      height: `${previewPolaroidSize.heightCm * modalPreviewScale}cm`,
+                    }}
+                  >
+                    <div
+                      className="polaroid box-border max-w-none origin-top-left"
+                      style={{
+                        width: `${previewPolaroidSize.widthCm}cm`,
+                        height: `${previewPolaroidSize.heightCm}cm`,
+                        transform: `scale(${modalPreviewScale})`,
+                      }}
+                    >
+                      <div
+                        className={cn(
+                          "relative w-full overflow-hidden bg-muted",
+                          previewTemplate.toneClass,
+                        )}
+                        style={{
+                          height: `${previewPolaroidSize.imageHeightCm}cm`,
+                        }}
+                      >
+                        {previewPolaroid.photoLocalUrl && (
+                          <img
+                            src={previewPolaroid.photoLocalUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            style={{
+                              objectPosition: `${previewPolaroid.imagePosX}% ${previewPolaroid.imagePosY}%`,
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <p
+                        className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-ink/85 leading-tight"
+                        style={{
+                          top: `calc(0.75rem + ${previewPolaroidSize.imageHeightCm}cm)`,
+                        }}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block w-full max-w-full break-words leading-tight",
+                            alignClass[previewPolaroid.align],
+                            previewFontStyle?.fontClass,
+                            fontWeightClass[previewPolaroid.fontWeightId ?? "regular"],
+                            getCaptionSizeClass(
+                              previewPolaroid.polaroidSizeId,
+                              previewPolaroid.size,
+                            ),
+                          )}
+                        >
+                          {previewPolaroid.caption || " "}
+                        </span>
+                      </p>
+
+                      <div className="pointer-events-none absolute inset-0 z-20 flex select-none items-center justify-center overflow-hidden">
+                        <span className="-rotate-12 text-5xl font-bold uppercase tracking-[0.28em] text-ink/15 sm:text-6xl">
+                          PRÉVIA
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-2 text-center text-sm font-medium text-muted-foreground">
+                  {previewPolaroidSize.label} cm
+                </p>
+
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={removerPolaroidSelecionada}
+                    className="h-10 rounded-full border-border bg-paper/70 text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:text-destructive hover:shadow-polaroid active:scale-[0.98] sm:min-w-44"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Remover do carrinho
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

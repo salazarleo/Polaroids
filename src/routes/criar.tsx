@@ -971,7 +971,7 @@ function CriarPage() {
   }
 
   return (
-    <div className="criar-page min-h-screen lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
+    <div className="criar-page h-[100dvh] overflow-hidden">
       {styleWarning && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-6 backdrop-blur-[1px]"
@@ -992,8 +992,8 @@ function CriarPage() {
         </div>
       )}
 
-      <main className="mx-auto max-w-7xl px-3 py-3 sm:px-6 sm:py-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
-        <section className="leather-card criar-fade-up criar-delay-1 criar-panel-motion mx-auto mb-3 p-2 lg:max-w-6xl lg:shrink-0 lg:px-4 lg:py-2.5">
+      <main className="mx-auto max-w-7xl px-3 py-3 sm:px-6 sm:py-4 lg:h-full lg:min-h-0 lg:overflow-hidden max-lg:p-0 max-lg:max-w-none max-lg:h-full max-lg:flex max-lg:flex-col max-lg:overflow-hidden">
+        <section className="leather-card criar-fade-up criar-delay-1 criar-panel-motion mx-auto mb-3 p-2 lg:max-w-6xl lg:shrink-0 lg:px-4 lg:py-2.5 max-lg:hidden">
           {/* MOBILE - BARRA DE PERSONALIZAR */}
           <div className="lg:hidden">
             <div className="grid grid-cols-2 gap-2">
@@ -1116,7 +1116,10 @@ function CriarPage() {
           </div>
         </section>
 
-        <div className="mx-auto grid items-stretch justify-center gap-3 lg:h-[calc(100dvh-11.75rem)] lg:min-h-0 lg:max-h-[42rem] lg:overflow-hidden lg:grid-cols-[300px_minmax(460px,560px)_300px] lg:gap-6">
+        {/* Spacer mobile: compensa a barra superior fixa de 52px */}
+        <div className="lg:hidden h-[52px] shrink-0" />
+
+        <div className="mx-auto grid items-stretch justify-center gap-3 lg:h-[calc(100dvh-11.75rem)] lg:min-h-0 lg:max-h-[42rem] lg:overflow-hidden lg:grid-cols-[300px_minmax(460px,560px)_300px] lg:gap-6 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
           {/* ESQUERDA - MODELOS */}
           <aside className="criar-fade-up criar-delay-2 order-3 lg:order-1 lg:h-full lg:min-h-0">
             <div className="leather-card criar-plain-card criar-panel-motion flex h-full flex-col border-0 bg-transparent p-0 shadow-none lg:min-h-0 lg:border lg:bg-paper lg:p-4 lg:shadow-soft">
@@ -1797,6 +1800,9 @@ function CriarPage() {
             </div>
           </aside>
         </div>
+
+        {/* Spacer mobile: compensa a barra inferior fixa */}
+        <div className="lg:hidden shrink-0" style={{ height: "calc(68px + env(safe-area-inset-bottom))" }} />
       </main>
 
       {/* MODAL CONFIRMAÇÃO REMOÇÃO */}

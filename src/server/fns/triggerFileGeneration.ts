@@ -13,9 +13,11 @@ export const triggerFileGeneration = createServerFn({ method: "POST" })
     const supabaseUrl = (
       getFirstServerEnv("SUPABASE_URL", "VITE_SUPABASE_URL") ?? ""
     ).replace(/\/$/, "");
-    const serviceKey = getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!supabaseUrl || !serviceKey) {
+    const serviceKey = getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const internalSecret = getServerEnv("INTERNAL_FUNCTION_SECRET");
+
+    if (!supabaseUrl || !serviceKey || !internalSecret) {
       throw new Error("Credenciais do servidor ausentes");
     }
 
@@ -24,11 +26,13 @@ export const triggerFileGeneration = createServerFn({ method: "POST" })
       payload: Record<string, unknown>,
     ) {
       const url = `${supabaseUrl}/functions/v1/${functionName}`;
+
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${serviceKey}`,
+          "X-Internal-Secret": internalSecret,
         },
         body: JSON.stringify({ orderId: data.orderId, ...payload }),
       });
@@ -51,6 +55,7 @@ export const triggerFileGeneration = createServerFn({ method: "POST" })
     }
 
     const supabase = getSupabaseAdmin();
+
     const { data: items, error: itemsError } = await supabase
       .from("order_items")
       .select("position")
@@ -62,10 +67,15 @@ export const triggerFileGeneration = createServerFn({ method: "POST" })
     }
 
     for (const item of items as Array<{ position: number }>) {
-      await callFunction("generate-polaroid-png", { position: item.position });
+      await callFunction("generate-polaroid-png", {
+        position: item.position,
+      });
     }
 
     const body = await callFunction("generate-polaroid-pdf", {});
 
-    return { ok: body.ok, alreadyReady: body.alreadyReady ?? false };
+    return {
+      ok: body.ok,
+      alreadyReady: body.alreadyReady ?? false,
+    };
   });

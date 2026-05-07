@@ -30,13 +30,21 @@ Deno.serve(async (req: Request) => {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const auth = req.headers.get("Authorization") ?? "";
-  const token = auth.replace(/^Bearer\s+/i, "");
-  if (!token || token !== SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response("Unauthorized", { status: 401 });
+  const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
+  const receivedSecret = req.headers.get("X-Internal-Secret");
+
+  if (!internalSecret || receivedSecret !== internalSecret) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Unauthorized" }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
   let body: { orderId?: string };
+
   try {
     body = await req.json();
   } catch {
@@ -90,6 +98,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const pdfDoc = await PDFDocument.create();
+
     pdfDoc.setTitle("Polaroids - pedido");
     pdfDoc.setCreator("EditPolaroids");
 
@@ -109,14 +118,18 @@ Deno.serve(async (req: Request) => {
 
       if (error || !data) {
         throw new Error(
-          `Download PNG falhou para o item ${item.id}: ${error?.message ?? "sem arquivo"}`,
+          `Download PNG falhou para o item ${item.id}: ${
+            error?.message ?? "sem arquivo"
+          }`,
         );
       }
 
       const { widthCm, heightCm } = getPrintSizeCm(item.polaroid_size_id);
       const widthPt = cmToPt(widthCm);
       const heightPt = cmToPt(heightCm);
+
       const page = pdfDoc.addPage([widthPt, heightPt]);
+
       const image = await pdfDoc.embedPng(
         new Uint8Array(await data.arrayBuffer()),
       );
@@ -130,6 +143,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const pdfPath = `${body.orderId}/pedido.pdf`;
+
     const { error: uploadError } = await supabase.storage
       .from(FINAL_BUCKET)
       .upload(pdfPath, await pdfDoc.save(), {
@@ -137,12 +151,16 @@ Deno.serve(async (req: Request) => {
         upsert: true,
       });
 
-    if (uploadError)
+    if (uploadError) {
       throw new Error(`Upload PDF falhou: ${uploadError.message}`);
+    }
 
     await supabase
       .from("orders")
-      .update({ final_pdf_path: pdfPath, files_ready: true })
+      .update({
+        final_pdf_path: pdfPath,
+        files_ready: true,
+      })
       .eq("id", body.orderId);
 
     return new Response(JSON.stringify({ ok: true, pdfPath }), {
@@ -150,7 +168,9 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
     console.error("[generate-polaroid-pdf] Erro:", message);
+
     return new Response(JSON.stringify({ ok: false, error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

@@ -18,9 +18,11 @@ async function getFontBytes(item: OrderItemForPngRender) {
     item.font_style_id,
     item.font_weight_id,
   );
+
   if (!fontBytes && item.font_style_id) {
     fontBytes = await fetchPolaroidFont(null, item.font_weight_id);
   }
+
   return fontBytes;
 }
 
@@ -29,6 +31,7 @@ function getStorageTransformUrl(item: OrderItemForPngRender): string {
     item.polaroid_size_id,
     item.size,
   );
+
   const transformScale = 1.6;
 
   try {
@@ -41,6 +44,7 @@ function getStorageTransformUrl(item: OrderItemForPngRender): string {
     const filePath = url.pathname.slice(
       publicPathIndex + publicObjectPath.length,
     );
+
     url.pathname = `/storage/v1/render/image/public/${filePath}`;
     url.searchParams.set("width", String(Math.ceil(width * transformScale)));
     url.searchParams.set("height", String(Math.ceil(height * transformScale)));
@@ -58,13 +62,21 @@ Deno.serve(async (req: Request) => {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const auth = req.headers.get("Authorization") ?? "";
-  const token = auth.replace(/^Bearer\s+/i, "");
-  if (!token || token !== SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response("Unauthorized", { status: 401 });
+  const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
+  const receivedSecret = req.headers.get("X-Internal-Secret");
+
+  if (!internalSecret || receivedSecret !== internalSecret) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Unauthorized" }),
+      {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
   let body: { orderId?: string; position?: number };
+
   try {
     body = await req.json();
   } catch {
@@ -126,6 +138,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const renderItem = item as OrderItemForPngRender;
+
     console.log("[generate-polaroid-png] Compondo item", {
       orderId: body.orderId,
       order_item_id: renderItem.id,
@@ -141,6 +154,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const photoUrl = getStorageTransformUrl(renderItem);
+
     console.log("[generate-polaroid-png] Foto para composicao", {
       orderId: body.orderId,
       order_item_id: renderItem.id,
@@ -148,13 +162,17 @@ Deno.serve(async (req: Request) => {
     });
 
     const photoRes = await fetch(photoUrl);
-    if (!photoRes.ok) throw new Error(`Foto retornou ${photoRes.status}`);
+
+    if (!photoRes.ok) {
+      throw new Error(`Foto retornou ${photoRes.status}`);
+    }
 
     const png = await renderPolaroidPng(
       renderItem,
       new Uint8Array(await photoRes.arrayBuffer()),
       await getFontBytes(renderItem),
     );
+
     const pngPath = `${body.orderId}/polaroid-${renderItem.position + 1}.png`;
 
     const { error: uploadError } = await supabase.storage
@@ -164,8 +182,9 @@ Deno.serve(async (req: Request) => {
         upsert: true,
       });
 
-    if (uploadError)
+    if (uploadError) {
       throw new Error(`Upload PNG falhou: ${uploadError.message}`);
+    }
 
     await supabase
       .from("order_items")
@@ -177,7 +196,9 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
     console.error("[generate-polaroid-png] Erro:", message);
+
     return new Response(JSON.stringify({ ok: false, error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

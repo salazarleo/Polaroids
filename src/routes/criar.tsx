@@ -1599,6 +1599,160 @@ function CriarPage() {
                   </div>
                 </div>
 
+                {/* MOBILE: Card "Minhas Polaroids" colapsável */}
+                <div className="lg:hidden mt-2 shrink-0 mx-0 rounded-2xl border border-border bg-paper shadow-soft">
+                  {/* Cabeçalho sempre visível */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileSavedOpen((v) => !v)}
+                    className="criar-control flex w-full items-center justify-between px-4 py-3"
+                  >
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="font-display text-base font-medium text-ink">
+                        Minhas Polaroids
+                      </span>
+                      {saved.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          {saved.length} {saved.length === 1 ? "foto" : "fotos"} •{" "}
+                          {totalPedidoFormatado}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                        mobileSavedOpen && "rotate-180",
+                      )}
+                    />
+                  </button>
+
+                  {/* Área interna (visível apenas quando aberta) */}
+                  {mobileSavedOpen && (
+                    <div className="border-t border-border">
+                      {saved.length === 0 ? (
+                        <div className="mx-3 mb-3 mt-2 rounded-xl border border-dashed border-border p-4 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            Nenhuma Polaroid criada ainda.
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          className="flex flex-row gap-3 overflow-x-auto px-3 pb-3 pt-2"
+                          style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
+                        >
+                          {saved.map((item) => {
+                            const it = templates.find((t) => t.id === item.templateId)!;
+                            const itemFontStyle = item.fontStyleId
+                              ? fontStyles.find((style) => style.id === item.fontStyleId)
+                              : null;
+                            const itemPolaroidSize =
+                              polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
+                              polaroidSizes[0];
+                            const gallerySlotStyle = getGallerySlotStyle(itemPolaroidSize);
+                            const cardWidth = gallerySlotStyle.width;
+                            const isSelected = item.id === draft.id;
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="criar-saved-card criar-fade-up relative shrink-0"
+                                style={{ width: cardWidth, scrollSnapAlign: "start" }}
+                              >
+                                <div className="mb-2 text-center text-[11px] font-medium text-muted-foreground">
+                                  {itemPolaroidSize.label} cm
+                                </div>
+
+                                <div
+                                  className="relative flex items-start justify-center"
+                                  style={gallerySlotStyle}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => editarSalva(item)}
+                                    className={cn(
+                                      "absolute inset-0 z-10 rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
+                                      isSelected &&
+                                        "ring-2 ring-ink/40 ring-offset-2 ring-offset-paper",
+                                    )}
+                                    aria-label="Editar Polaroid"
+                                  />
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDraftIdPendenteRemocao(item.id);
+                                    }}
+                                    className="absolute -right-1.5 -top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-border/70 bg-paper shadow-soft transition-opacity duration-150 hover:bg-cream focus:outline-none"
+                                    aria-label="Remover Polaroid"
+                                  >
+                                    <X className="h-2.5 w-2.5 text-muted-foreground" />
+                                  </button>
+
+                                  <div
+                                    className="origin-top-left"
+                                    style={{
+                                      transform: `scale(${itemPolaroidSize.galleryScale})`,
+                                      transformOrigin: "top center",
+                                    }}
+                                  >
+                                    <div
+                                      className="polaroid box-border max-w-none"
+                                      style={{
+                                        width: `${itemPolaroidSize.widthCm}cm`,
+                                        height: `${itemPolaroidSize.heightCm}cm`,
+                                      }}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "relative w-full overflow-hidden bg-muted",
+                                          it.toneClass,
+                                        )}
+                                        style={{ height: `${itemPolaroidSize.imageHeightCm}cm` }}
+                                      >
+                                        {item.photoLocalUrl && (
+                                          <img
+                                            src={item.photoLocalUrl}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                            style={{
+                                              objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                              transform: getImageTransform(item),
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+
+                                      <p
+                                        className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-black leading-tight"
+                                        style={{
+                                          top: `calc(0.75rem + ${itemPolaroidSize.imageHeightCm}cm)`,
+                                        }}
+                                      >
+                                        <span
+                                          className={cn(
+                                            "inline-block w-full max-w-full break-words leading-tight",
+                                            alignClass[item.align],
+                                            itemFontStyle?.fontClass,
+                                            fontWeightClass[item.fontWeightId ?? "regular"],
+                                            getCaptionSizeClass(item.polaroidSizeId, item.size),
+                                          )}
+                                        >
+                                          {item.caption || " "}
+                                        </span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {draft.photoLocalUrl && !isAdjustingImage && (
                   <div className="criar-fade-up relative z-20 hidden lg:flex shrink-0 flex-col items-center gap-2">
                     <div className="flex justify-center gap-2">

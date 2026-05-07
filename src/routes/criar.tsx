@@ -1179,7 +1179,7 @@ function CriarPage() {
 
         <div className="mx-auto grid items-stretch justify-center gap-3 lg:h-[calc(100dvh-11.75rem)] lg:min-h-0 lg:max-h-[42rem] lg:overflow-hidden lg:grid-cols-[300px_minmax(460px,560px)_300px] lg:gap-6 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
           {/* ESQUERDA - MODELOS */}
-          <aside className="criar-fade-up criar-delay-2 order-3 lg:order-1 lg:h-full lg:min-h-0">
+          <aside className="criar-fade-up criar-delay-2 order-3 lg:order-1 lg:h-full lg:min-h-0 hidden lg:block">
             <div className="leather-card criar-plain-card criar-panel-motion flex h-full flex-col border-0 bg-transparent p-0 shadow-none lg:min-h-0 lg:border lg:bg-paper lg:p-4 lg:shadow-soft">
               {/* DESKTOP */}
               <div className="hidden lg:flex lg:h-full lg:min-h-0 lg:flex-col">
@@ -1295,9 +1295,9 @@ function CriarPage() {
           </aside>
 
           {/* CENTRO - PREVIEW */}
-          <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0">
-            <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft">
-              <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3">
+          <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0 max-lg:flex max-lg:flex-col max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
+            <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft max-lg:flex-1 max-lg:min-h-0 max-lg:items-stretch">
+              <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:gap-0">
                 <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3">
                   <div className="flex min-h-0 flex-1 items-center justify-center">
                     <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible">
@@ -1710,7 +1710,7 @@ function CriarPage() {
           </section>
 
           {/* MINHAS POLAROIDS */}
-          <aside className="criar-fade-up criar-delay-4 order-4 flex flex-col lg:order-3 lg:h-full lg:min-h-0">
+          <aside className="criar-fade-up criar-delay-4 order-4 flex flex-col lg:order-3 lg:h-full lg:min-h-0 hidden lg:flex">
             <div className="leather-card criar-plain-card criar-panel-motion flex min-h-0 flex-1 flex-col overflow-hidden p-4 lg:p-4">
               <div>
                 <h2 className="font-display text-xl font-medium">Minhas Polaroids</h2>

@@ -488,11 +488,16 @@ function CriarPage() {
   const [draftIdPendenteRemocao, setDraftIdPendenteRemocao] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [flipMenuOpen, setFlipMenuOpen] = useState(false);
+  const [mobileSizeDropdownOpen, setMobileSizeDropdownOpen] = useState(false);
+  const [mobileFontPanelOpen, setMobileFontPanelOpen] = useState(false);
+  const [mobileSizePanelOpen, setMobileSizePanelOpen] = useState(false);
+  const [mobileSavedOpen, setMobileSavedOpen] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
   const cornerDragRef = useRef<CornerDragState | null>(null);
   const uploadAbortRef = useRef<string | null>(null);
+  const prevSavedLengthRef = useRef(0);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
 

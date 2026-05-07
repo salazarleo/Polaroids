@@ -20,20 +20,26 @@ import { formatarPrecoCentavos } from "../utils/pricing";
 
 // ─── Rota ─────────────────────────────────────────────────────────────────────
 
-const mpSearchSchema = z.object({
-  mp_return: z.enum(["success", "pending", "failure"]).optional(),
-  collection_id: z.string().optional(),
-  collection_status: z.string().optional(),
-  external_reference: z.string().optional(),
-  merchant_order_id: z.string().optional(),
-  payment_id: z.string().optional(),
-  payment_type: z.string().optional(),
-  preference_id: z.string().optional(),
-  status: z.string().optional(),
-});
+const mpSearchSchema = z
+  .object({
+    mp_return: z.string().optional(),
+    collection_id: z.string().optional(),
+    collection_status: z.string().optional(),
+    external_reference: z.string().optional(),
+    merchant_order_id: z.string().optional(),
+    payment_id: z.string().optional(),
+    payment_type: z.string().optional(),
+    preference_id: z.string().optional(),
+    status: z.string().optional(),
+    site_id: z.string().optional(),
+    processing_mode: z.string().optional(),
+    merchant_account_id: z.string().nullable().optional(),
+  })
+  .passthrough()
+  .catch({});
 
 export const Route = createFileRoute("/pedido/$orderId")({
-  validateSearch: mpSearchSchema,
+  validateSearch: (search) => mpSearchSchema.parse(search),
   head: () => ({
     meta: [{ title: "Seu pedido — Polaroids" }],
   }),
@@ -43,7 +49,7 @@ export const Route = createFileRoute("/pedido/$orderId")({
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type DBStatus = "pending" | "paid" | "failed" | "expired" | null;
-type MPReturn = z.infer<typeof mpSearchSchema>["mp_return"];
+type MPReturn = string | undefined;
 
 function getMPHint(
   mpReturn: MPReturn,
@@ -162,7 +168,8 @@ function PedidoPage() {
         if (result.status === "failed" || result.status === "expired") return;
 
         timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
-      } catch {
+      } catch (err) {
+        console.error("[pedido] Erro ao consultar status do pedido:", err);
         timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
       }
     }

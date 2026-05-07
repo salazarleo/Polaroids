@@ -1298,7 +1298,7 @@ function CriarPage() {
           <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0 max-lg:flex max-lg:flex-col max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
             <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft max-lg:flex-1 max-lg:min-h-0 max-lg:items-stretch">
               <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:gap-0">
-                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:grid max-lg:grid-cols-[1fr_auto_1fr] max-lg:items-center max-lg:gap-1 max-lg:flex-none max-lg:flex-1">
+                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:grid max-lg:grid-cols-[1fr_auto_1fr] max-lg:items-center max-lg:gap-1 max-lg:flex-1">
                   {/* Mobile phantom col: mirrors button column width to center the Polaroid */}
                   <div className="lg:hidden" aria-hidden="true" />
                   <div className="flex min-h-0 flex-1 items-center justify-center">

@@ -508,7 +508,6 @@ function CriarPage() {
   const dragRef = useRef<ImageDragState | null>(null);
   const cornerDragRef = useRef<CornerDragState | null>(null);
   const uploadAbortRef = useRef<string | null>(null);
-  const prevSavedLengthRef = useRef(0);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
 
@@ -622,13 +621,6 @@ function CriarPage() {
       document.removeEventListener("click", close);
     };
   }, [mobileSizePanelOpen]);
-
-  useEffect(() => {
-    if (prevSavedLengthRef.current === 0 && saved.length === 1) {
-      setMobileSavedOpen(true);
-    }
-    prevSavedLengthRef.current = saved.length;
-  }, [saved.length]);
 
   function pickFile() {
     fileRef.current?.click();
@@ -1616,37 +1608,64 @@ function CriarPage() {
                   </div>
                 </div>
 
-                {/* MOBILE: Card "Minhas Polaroids" sempre aberto */}
-                <div className="lg:hidden mx-auto mt-5 flex h-[220px] w-[320px] max-w-[calc(100%-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-paper shadow-soft">
-                  {/* Cabeçalho */}
-                  <div className="flex h-[64px] shrink-0 items-center justify-center px-4 text-center">
+                {/* MOBILE: Card "Minhas Polaroids" colapsavel */}
+                <div
+                  className={cn(
+                    "lg:hidden mx-auto mt-5 flex w-[320px] max-w-[calc(100%-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-paper shadow-soft transition-[height] duration-200 ease-out",
+                    mobileSavedOpen ? "h-[220px]" : "h-[64px]",
+                  )}
+                >
+                  {/* Cabecalho */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileSavedOpen((open) => !open)}
+                    className="relative flex h-[64px] w-full shrink-0 items-center justify-center border-0 bg-transparent px-10 text-center outline-none transition-colors hover:bg-cream/40 focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-inset"
+                    aria-expanded={mobileSavedOpen}
+                    aria-controls="mobile-saved-polaroids-panel"
+                    aria-label={
+                      mobileSavedOpen ? "Recolher Minhas Polaroids" : "Expandir Minhas Polaroids"
+                    }
+                  >
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="font-display text-base font-medium text-ink">
                         Minhas Polaroids
                       </span>
                       <span className="min-h-[14px] text-[11px] text-muted-foreground">
-                        {saved.length > 0
-                          ? `${saved.length} ${saved.length === 1 ? "foto" : "fotos"} • ${totalPedidoFormatado}`
+                        {quantidadePolaroids > 0
+                          ? `${quantidadePolaroids} ${quantidadePolaroids === 1 ? "foto" : "fotos"} • ${totalPedidoFormatado}`
                           : ""}
                       </span>
                     </div>
-                  </div>
+                    <ChevronDown
+                      className={cn(
+                        "absolute right-4 h-4 w-4 text-muted-foreground transition-transform duration-200",
+                        mobileSavedOpen && "rotate-180",
+                      )}
+                      aria-hidden="true"
+                    />
+                  </button>
 
-                  {/* Conteúdo sempre visível */}
-                  <div className="min-h-0 flex-1 overflow-y-hidden border-t border-border">
-                    {saved.length === 0 ? (
-                      <div className="flex h-full items-center justify-center p-3">
-                        <div className="flex h-full w-full items-center justify-center rounded-xl border border-dashed border-border p-4 text-center">
-                          <p className="text-sm text-muted-foreground">
-                            Nenhuma Polaroid criada ainda.
-                          </p>
+                  {mobileSavedOpen && (
+                    <div
+                      id="mobile-saved-polaroids-panel"
+                      className="min-h-0 flex-1 overflow-y-hidden border-t border-border"
+                    >
+                      {saved.length === 0 ? (
+                        <div className="flex h-full items-center justify-center p-3">
+                          <div className="flex h-full w-full items-center justify-center rounded-xl border border-dashed border-border p-4 text-center">
+                            <p className="text-sm text-muted-foreground">
+                              Nenhuma Polaroid criada ainda.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="flex h-full flex-row items-center gap-3 overflow-x-auto overflow-y-hidden px-3 py-3"
-                        style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
-                      >
+                      ) : (
+                        <div
+                          className="flex h-full flex-row items-center gap-3 overflow-x-auto overflow-y-hidden px-3 py-3"
+                          style={{
+                            scrollSnapType: "x mandatory",
+                            WebkitOverflowScrolling: "touch",
+                          }}
+                        >
                           {saved.map((item) => {
                             const it = templates.find((t) => t.id === item.templateId)!;
                             const itemFontStyle = item.fontStyleId
@@ -1758,6 +1777,7 @@ function CriarPage() {
                         </div>
                       )}
                     </div>
+                  )}
                 </div>
 
                 {draft.photoLocalUrl && !isAdjustingImage && (

@@ -86,6 +86,30 @@ type FontStyleId =
   | "bebas-neue"
   | "alice"
   | "caveat"
+  | "allura"
+  | "parisienne"
+  | "great-vibes"
+  | "sacramento"
+  | "alex-brush"
+  | "rouge-script"
+  | "italianno"
+  | "tangerine"
+  | "petit-formal-script"
+  | "mrs-saint-delafield"
+  | "windsong"
+  | "hurricane"
+  | "fleur-de-leah"
+  | "imperial-script"
+  | "whisper"
+  | "bellefair"
+  | "crimson-text"
+  | "julius-sans-one"
+  | "forum"
+  | "gfs-didot"
+  | "poiret-one"
+  | "tenor-sans"
+  | "sorts-mill-goudy"
+  | "spectral-light"
   | "playfair";
 
 interface TemplateDef {
@@ -270,6 +294,150 @@ const fontStyles: FontStyleDef[] = [
     sample: "Memórias especiais",
   },
   {
+    id: "allura",
+    name: "Allura",
+    fontClass: "font-allura",
+    sample: "Nosso amor",
+  },
+  {
+    id: "parisienne",
+    name: "Parisienne",
+    fontClass: "font-parisienne",
+    sample: "Para sempre",
+  },
+  {
+    id: "great-vibes",
+    name: "Great Vibes",
+    fontClass: "font-great-vibes",
+    sample: "Eu te amo",
+  },
+  {
+    id: "sacramento",
+    name: "Sacramento",
+    fontClass: "font-sacramento",
+    sample: "Nosso caminho",
+  },
+  {
+    id: "alex-brush",
+    name: "Alex Brush",
+    fontClass: "font-alex-brush",
+    sample: "Amor infinito",
+  },
+  {
+    id: "rouge-script",
+    name: "Rouge Script",
+    fontClass: "font-rouge-script",
+    sample: "Meu lugar",
+  },
+  {
+    id: "italianno",
+    name: "Italianno",
+    fontClass: "font-italianno",
+    sample: "Só nós dois",
+  },
+  {
+    id: "tangerine",
+    name: "Tangerine",
+    fontClass: "font-tangerine",
+    sample: "Meu amor",
+  },
+  {
+    id: "petit-formal-script",
+    name: "Petit Formal",
+    fontClass: "font-petit-formal-script",
+    sample: "Nossa história",
+  },
+  {
+    id: "mrs-saint-delafield",
+    name: "Mrs Saint",
+    fontClass: "font-mrs-saint-delafield",
+    sample: "Para nós",
+  },
+  {
+    id: "windsong",
+    name: "WindSong",
+    fontClass: "font-windsong",
+    sample: "Sempre você",
+  },
+  {
+    id: "hurricane",
+    name: "Hurricane",
+    fontClass: "font-hurricane",
+    sample: "Meu par",
+  },
+  {
+    id: "fleur-de-leah",
+    name: "Fleur De Leah",
+    fontClass: "font-fleur-de-leah",
+    sample: "Nosso instante",
+  },
+  {
+    id: "imperial-script",
+    name: "Imperial Script",
+    fontClass: "font-imperial-script",
+    sample: "Amor meu",
+  },
+  {
+    id: "whisper",
+    name: "Whisper",
+    fontClass: "font-whisper",
+    sample: "Com você",
+  },
+  {
+    id: "bellefair",
+    name: "Bellefair",
+    fontClass: "font-bellefair",
+    sample: "Nosso amor",
+  },
+  {
+    id: "crimson-text",
+    name: "Crimson Text",
+    fontClass: "font-crimson-text",
+    sample: "Eu te amo",
+  },
+  {
+    id: "julius-sans-one",
+    name: "Julius Sans",
+    fontClass: "font-julius-sans-one",
+    sample: "Para sempre",
+  },
+  {
+    id: "forum",
+    name: "Forum",
+    fontClass: "font-forum",
+    sample: "Nosso caminho",
+  },
+  {
+    id: "gfs-didot",
+    name: "GFS Didot",
+    fontClass: "font-gfs-didot",
+    sample: "Meu lugar",
+  },
+  {
+    id: "poiret-one",
+    name: "Poiret One",
+    fontClass: "font-poiret-one",
+    sample: "Só nós dois",
+  },
+  {
+    id: "tenor-sans",
+    name: "Tenor Sans",
+    fontClass: "font-tenor-sans",
+    sample: "Amor infinito",
+  },
+  {
+    id: "sorts-mill-goudy",
+    name: "Sorts Mill",
+    fontClass: "font-sorts-mill-goudy",
+    sample: "Nossa história",
+  },
+  {
+    id: "spectral-light",
+    name: "Spectral Light",
+    fontClass: "font-spectral-light",
+    sample: "Com você",
+  },
+  {
     id: "playfair",
     name: "Playfair Display",
     fontClass: "font-display",
@@ -352,19 +520,19 @@ interface PolaroidItem {
 
 const captionSizeClass: Record<PolaroidSizeId, Record<Size, string>> = {
   "7x10": {
-    sm: "text-[0.95rem]",
-    md: "text-[1.08rem]",
-    lg: "text-[1.2rem]",
+    sm: "text-[1.45rem]",
+    md: "text-[1.75rem]",
+    lg: "text-[2.05rem]",
   },
   "5x8": {
-    sm: "text-[0.8rem]",
-    md: "text-[0.92rem]",
-    lg: "text-[1.05rem]",
+    sm: "text-[1.25rem]",
+    md: "text-[1.5rem]",
+    lg: "text-[1.78rem]",
   },
   "4x5": {
-    sm: "text-[0.58rem]",
-    md: "text-[0.68rem]",
-    lg: "text-[0.78rem]",
+    sm: "text-[0.95rem]",
+    md: "text-[1.15rem]",
+    lg: "text-[1.35rem]",
   },
 };
 
@@ -428,8 +596,12 @@ function clampImageScale(value: number) {
 function getImageTransform(item: PolaroidItem): string | undefined {
   const scaleX = item.imageScale * (item.flipHorizontal ? -1 : 1);
   const scaleY = item.imageScale * (item.flipVertical ? -1 : 1);
-  if (scaleX === 1 && scaleY === 1) return undefined;
-  return `scale(${scaleX}, ${scaleY})`;
+  const panFactor = Math.max(0, item.imageScale - 1);
+  const translateX = (50 - item.imagePosX) * panFactor;
+  const translateY = (50 - item.imagePosY) * panFactor;
+
+  if (scaleX === 1 && scaleY === 1 && translateX === 0 && translateY === 0) return undefined;
+  return `translate(${translateX}%, ${translateY}%) scale(${scaleX}, ${scaleY})`;
 }
 
 function getUploadErrorMessage(error: unknown) {
@@ -640,18 +812,6 @@ function CriarPage() {
       document.removeEventListener("click", close);
     };
   }, [mobileSizeDropdownOpen]);
-
-  useEffect(() => {
-    if (!mobileFontPanelOpen) return;
-    const close = () => setMobileFontPanelOpen(false);
-    const timerId = window.setTimeout(() => {
-      document.addEventListener("click", close, { once: true });
-    }, 0);
-    return () => {
-      window.clearTimeout(timerId);
-      document.removeEventListener("click", close);
-    };
-  }, [mobileFontPanelOpen]);
 
   useEffect(() => {
     if (!mobileSizePanelOpen) return;
@@ -1620,9 +1780,9 @@ function CriarPage() {
                                       fontWeightClass[draft.fontWeightId],
                                       getCaptionSizeClass(draft.polaroidSizeId, draft.size),
                                     )}
-                                  >
-                                    {draft.caption || (
-                                      <span className="text-muted-foreground/70 lg:hidden">
+                                    >
+                                      {draft.caption || (
+                                      <span className="block w-full whitespace-nowrap text-center font-body text-[0.72rem] font-normal leading-none text-muted-foreground/70 lg:hidden">
                                         Toque para editar
                                       </span>
                                     )}
@@ -2389,10 +2549,7 @@ function CriarPage() {
                 <button
                   key={style.id}
                   type="button"
-                  onClick={() => {
-                    selecionarFonte(style);
-                    setMobileFontPanelOpen(false);
-                  }}
+                  onClick={() => selecionarFonte(style)}
                   style={{ scrollSnapAlign: "start" }}
                   className={cn(
                     "criar-control flex shrink-0 flex-col items-center gap-1 rounded-xl border-2 px-3 py-2.5 transition-all",

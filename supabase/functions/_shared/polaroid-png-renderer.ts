@@ -18,9 +18,9 @@ const POLAROID_PRINT_SIZES_CM = {
 } as const;
 
 const CAPTION_FONT_REM: Record<string, Record<string, number>> = {
-  "7x10": { sm: 0.95, md: 1.08, lg: 1.2 },
-  "5x8": { sm: 0.8, md: 0.92, lg: 1.05 },
-  "4x5": { sm: 0.58, md: 0.68, lg: 0.78 },
+  "7x10": { sm: 1.45, md: 1.75, lg: 2.05 },
+  "5x8": { sm: 1.25, md: 1.5, lg: 1.78 },
+  "4x5": { sm: 0.95, md: 1.15, lg: 1.35 },
 };
 
 type PrintSizeId = keyof typeof POLAROID_PRINT_SIZES_CM;
@@ -46,6 +46,30 @@ const FONT_CONFIG: Record<string, FontConfig> = {
   "bebas-neue": { google: "Bebas+Neue" },
   alice: { google: "Alice" },
   caveat: { google: "Caveat" },
+  allura: { google: "Allura" },
+  parisienne: { google: "Parisienne" },
+  "great-vibes": { google: "Great+Vibes" },
+  sacramento: { google: "Sacramento" },
+  "alex-brush": { google: "Alex+Brush" },
+  "rouge-script": { google: "Rouge+Script" },
+  italianno: { google: "Italianno" },
+  tangerine: { google: "Tangerine" },
+  "petit-formal-script": { google: "Petit+Formal+Script" },
+  "mrs-saint-delafield": { google: "Mrs+Saint+Delafield" },
+  windsong: { google: "WindSong" },
+  hurricane: { google: "Hurricane" },
+  "fleur-de-leah": { google: "Fleur+De+Leah" },
+  "imperial-script": { google: "Imperial+Script" },
+  whisper: { google: "Whisper" },
+  bellefair: { google: "Bellefair" },
+  "crimson-text": { google: "Crimson+Text" },
+  "julius-sans-one": { google: "Julius+Sans+One" },
+  forum: { google: "Forum" },
+  "gfs-didot": { google: "GFS+Didot" },
+  "poiret-one": { google: "Poiret+One" },
+  "tenor-sans": { google: "Tenor+Sans" },
+  "sorts-mill-goudy": { google: "Sorts+Mill+Goudy" },
+  "spectral-light": { google: "Spectral", weight: 300 },
   playfair: { google: "Playfair+Display" },
 };
 

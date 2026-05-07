@@ -4,6 +4,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MP_ACCESS_TOKEN = Deno.env.get("MP_ACCESS_TOKEN")!;
 const MP_WEBHOOK_SECRET = Deno.env.get("MP_WEBHOOK_SECRET");
+const INTERNAL_FUNCTION_SECRET = Deno.env.get("INTERNAL_FUNCTION_SECRET");
 
 const ORDER_ITEM_SELECT =
   "id,position,caption,template_id,font_style_id,font_weight_id,polaroid_size_id,size,align,image_pos_x,image_pos_y";
@@ -60,6 +61,7 @@ async function verifySignature(req: Request, dataId: string): Promise<boolean> {
   }
 
   const parts: Record<string, string> = {};
+
   for (const part of xSignature.split(",")) {
     const [key, value] = part.split("=", 2);
     if (key && value) parts[key.trim()] = value.trim();
@@ -67,9 +69,11 @@ async function verifySignature(req: Request, dataId: string): Promise<boolean> {
 
   const ts = parts.ts;
   const v1 = parts.v1;
+
   if (!ts || !v1) return false;
 
   const message = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(MP_WEBHOOK_SECRET),
@@ -77,11 +81,13 @@ async function verifySignature(req: Request, dataId: string): Promise<boolean> {
     false,
     ["sign"],
   );
+
   const computed = await crypto.subtle.sign(
     "HMAC",
     key,
     new TextEncoder().encode(message),
   );
+
   const computedHex = Array.from(new Uint8Array(computed))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
@@ -98,7 +104,9 @@ async function fetchPayment(paymentId: string): Promise<MPPayment> {
   const response = await fetch(
     `https://api.mercadopago.com/v1/payments/${paymentId}`,
     {
-      headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
+      headers: {
+        Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+      },
     },
   );
 
@@ -114,14 +122,22 @@ async function callGenerationFunction(
   orderId: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  if (!INTERNAL_FUNCTION_SECRET) {
+    throw new Error("INTERNAL_FUNCTION_SECRET ausente no mp-webhook");
+  }
+
+  const response = await fetch(
+    `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/${functionName}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "X-Internal-Secret": INTERNAL_FUNCTION_SECRET,
+      },
+      body: JSON.stringify({ orderId, ...payload }),
     },
-    body: JSON.stringify({ orderId, ...payload }),
-  });
+  );
 
   const body = (await response
     .json()
@@ -155,6 +171,7 @@ async function generateOrderFiles(orderId: string): Promise<void> {
   }
 
   const orderItems = items as OrderItemForWebhook[];
+
   console.log("[generate] Dados lidos de order_items", {
     orderId,
     count: orderItems.length,
@@ -163,12 +180,14 @@ async function generateOrderFiles(orderId: string): Promise<void> {
 
   for (const item of orderItems) {
     console.log("[generate] Solicitando PNG", getOrderItemLog(orderId, item));
+
     await callGenerationFunction("generate-polaroid-png", orderId, {
       position: item.position,
     });
   }
 
   await callGenerationFunction("generate-polaroid-pdf", orderId, {});
+
   console.log("[generate] Arquivos finais solicitados com sucesso", {
     orderId,
   });
@@ -190,10 +209,12 @@ function runInBackground(task: Promise<unknown>) {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST")
+  if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
+  }
 
   let rawBody: string;
+
   try {
     rawBody = await req.text();
   } catch {
@@ -201,6 +222,7 @@ Deno.serve(async (req: Request) => {
   }
 
   let body: { action?: string; type?: string; data?: { id: string } };
+
   try {
     body = JSON.parse(rawBody);
   } catch {
@@ -212,15 +234,24 @@ Deno.serve(async (req: Request) => {
     body.action === "payment.created" ||
     body.action === "payment.updated";
 
-  if (!isPaymentEvent) return new Response("OK", { status: 200 });
+  if (!isPaymentEvent) {
+    return new Response("OK", { status: 200 });
+  }
 
   const paymentId = body.data?.id;
-  if (!paymentId) return new Response("OK", { status: 200 });
+
+  if (!paymentId) {
+    return new Response("OK", { status: 200 });
+  }
 
   const valid = await verifySignature(req, paymentId);
-  if (!valid) return new Response("Unauthorized", { status: 401 });
+
+  if (!valid) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   let payment: MPPayment;
+
   try {
     payment = await fetchPayment(paymentId);
   } catch (error) {
@@ -232,10 +263,12 @@ Deno.serve(async (req: Request) => {
     console.log(
       `[mp-webhook] Pagamento ${paymentId} com status '${payment.status}' - ignorando`,
     );
+
     return new Response("OK", { status: 200 });
   }
 
   const orderId = payment.external_reference;
+
   if (!orderId) {
     console.error("[mp-webhook] external_reference ausente", paymentId);
     return new Response("OK", { status: 200 });
@@ -254,6 +287,7 @@ Deno.serve(async (req: Request) => {
       orderId,
       fetchError,
     });
+
     return new Response("Not Found", { status: 404 });
   }
 
@@ -261,6 +295,7 @@ Deno.serve(async (req: Request) => {
     console.log(
       `[mp-webhook] Pedido ${orderId} ja esta pago - duplicata ignorada`,
     );
+
     if (!order.files_ready) {
       runInBackground(
         generateOrderFiles(orderId).catch((error) =>
@@ -268,12 +303,16 @@ Deno.serve(async (req: Request) => {
         ),
       );
     }
+
     return new Response("OK", { status: 200 });
   }
 
   const { error: updateError } = await supabase
     .from("orders")
-    .update({ status: "paid", mp_payment_id: String(payment.id) })
+    .update({
+      status: "paid",
+      mp_payment_id: String(payment.id),
+    })
     .eq("id", orderId)
     .eq("status", "pending");
 

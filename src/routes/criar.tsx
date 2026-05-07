@@ -1710,7 +1710,7 @@ function CriarPage() {
           </section>
 
           {/* MINHAS POLAROIDS */}
-          <aside className="criar-fade-up criar-delay-4 order-4 flex flex-col lg:order-3 lg:h-full lg:min-h-0 hidden lg:flex">
+          <aside className="criar-fade-up criar-delay-4 order-4 lg:flex-col lg:order-3 lg:h-full lg:min-h-0 hidden lg:flex">
             <div className="leather-card criar-plain-card criar-panel-motion flex min-h-0 flex-1 flex-col overflow-hidden p-4 lg:p-4">
               <div>
                 <h2 className="font-display text-xl font-medium">Minhas Polaroids</h2>

@@ -1,17 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-
-function getServerEnv(name: string) {
-  const metaEnv = import.meta.env as Record<string, string | undefined>;
-  const processEnv =
-    typeof process !== "undefined"
-      ? (process.env as Record<string, string | undefined>)
-      : {};
-
-  return metaEnv[name] ?? processEnv[name];
-}
+import { getFirstServerEnv, getServerEnv } from "./env";
 
 export function getSupabaseAdmin() {
-  const url = getServerEnv("VITE_SUPABASE_URL");
+  const url = getFirstServerEnv("SUPABASE_URL", "VITE_SUPABASE_URL");
   const serviceKey = getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!url || !serviceKey) {

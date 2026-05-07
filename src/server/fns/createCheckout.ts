@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSupabaseAdmin } from "../supabase";
 import { createMPPreference } from "../mercadopago";
+import { getFirstServerEnv } from "../env";
 import { calcularPrecoPolaroidsCentavos } from "../../utils/pricing";
 
 const CheckoutItemSchema = z.object({
@@ -22,8 +23,18 @@ const Input = z.object({
 });
 
 function getSiteUrl() {
-  const configuredUrl = import.meta.env.VITE_SITE_URL as string | undefined;
-  return (configuredUrl || "http://localhost:8080").replace(/\/$/, "");
+  const configuredUrl = getFirstServerEnv(
+    "SITE_URL",
+    "VITE_SITE_URL",
+    "VERCEL_URL",
+    "VERCEL_PROJECT_PRODUCTION_URL",
+  );
+  const siteUrl = configuredUrl || "http://localhost:8080";
+  const withProtocol = /^https?:\/\//.test(siteUrl)
+    ? siteUrl
+    : `https://${siteUrl}`;
+
+  return withProtocol.replace(/\/$/, "");
 }
 
 export const createCheckout = createServerFn({ method: "POST" })
@@ -59,10 +70,15 @@ export const createCheckout = createServerFn({ method: "POST" })
       image_pos_y: item.imagePosY,
     }));
 
-    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .insert(orderItems);
 
     if (itemsError) {
-      console.error("[create-checkout] Erro ao salvar itens, revertendo pedido", itemsError);
+      console.error(
+        "[create-checkout] Erro ao salvar itens, revertendo pedido",
+        itemsError,
+      );
       await supabase.from("orders").delete().eq("id", order.id);
       throw new Error("Não foi possível salvar os itens do pedido");
     }
@@ -71,7 +87,15 @@ export const createCheckout = createServerFn({ method: "POST" })
     const isLocalhost = /localhost|127\.0\.0\.1/.test(siteUrl);
 
     // URL da Edge Function no Supabase (sempre pública)
-    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string).replace(/\/$/, "");
+    const supabaseUrl = getFirstServerEnv(
+      "SUPABASE_URL",
+      "VITE_SUPABASE_URL",
+    )?.replace(/\/$/, "");
+
+    if (!supabaseUrl) {
+      throw new Error("URL do Supabase ausente no servidor");
+    }
+
     const notificationUrl = `${supabaseUrl}/functions/v1/mp-webhook`;
 
     let preference: Awaited<ReturnType<typeof createMPPreference>>;
@@ -98,7 +122,10 @@ export const createCheckout = createServerFn({ method: "POST" })
         ...(isLocalhost ? {} : { auto_return: "approved" as const }),
       });
     } catch (mpError) {
-      console.error("[create-checkout] Erro ao criar preferência MP, revertendo", mpError);
+      console.error(
+        "[create-checkout] Erro ao criar preferência MP, revertendo",
+        mpError,
+      );
       await supabase.from("orders").delete().eq("id", order.id);
       throw new Error("Não foi possível iniciar o pagamento. Tente novamente.");
     }
@@ -108,8 +135,11 @@ export const createCheckout = createServerFn({ method: "POST" })
       .update({ mp_preference_id: preference.id })
       .eq("id", order.id);
 
-    const isSandbox = (import.meta.env.VITE_MP_SANDBOX as string | undefined) !== "false";
-    const checkoutUrl = isSandbox ? preference.sandbox_init_point : preference.init_point;
+    const isSandbox =
+      getFirstServerEnv("MP_SANDBOX", "VITE_MP_SANDBOX") !== "false";
+    const checkoutUrl = isSandbox
+      ? preference.sandbox_init_point
+      : preference.init_point;
 
     return {
       orderId: order.id as string,

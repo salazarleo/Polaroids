@@ -1,27 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSupabaseAdmin } from "../supabase";
+import { getFirstServerEnv, getServerEnv } from "../env";
 
 const Input = z.object({
   orderId: z.string().uuid(),
 });
 
-function getServerEnv(name: string): string | undefined {
-  const metaEnv = import.meta.env as Record<string, string | undefined>;
-  const processEnv =
-    typeof process !== "undefined"
-      ? (process.env as Record<string, string | undefined>)
-      : {};
-  return metaEnv[name] ?? processEnv[name];
-}
-
 export const triggerFileGeneration = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => Input.parse(data))
   .handler(async ({ data }) => {
-    const supabaseUrl = (getServerEnv("VITE_SUPABASE_URL") ?? "").replace(
-      /\/$/,
-      "",
-    );
+    const supabaseUrl = (
+      getFirstServerEnv("SUPABASE_URL", "VITE_SUPABASE_URL") ?? ""
+    ).replace(/\/$/, "");
     const serviceKey = getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!supabaseUrl || !serviceKey) {

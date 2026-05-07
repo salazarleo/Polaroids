@@ -421,6 +421,10 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
+function clampImageScale(value: number) {
+  return Math.max(1, Math.min(4, value));
+}
+
 function getImageTransform(item: PolaroidItem): string | undefined {
   const scaleX = item.imageScale * (item.flipHorizontal ? -1 : 1);
   const scaleY = item.imageScale * (item.flipVertical ? -1 : 1);
@@ -486,6 +490,34 @@ interface CornerDragState {
   areaSize: number;
 }
 
+interface ActiveImagePointer {
+  x: number;
+  y: number;
+}
+
+interface ImagePinchState {
+  pointerIds: [number, number];
+  startDistance: number;
+  startCenterX: number;
+  startCenterY: number;
+  startScale: number;
+  startPosX: number;
+  startPosY: number;
+  areaWidth: number;
+  areaHeight: number;
+}
+
+function getPointerDistance(a: ActiveImagePointer, b: ActiveImagePointer) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function getPointerCenter(a: ActiveImagePointer, b: ActiveImagePointer) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+}
+
 function CriarPage() {
   const [draft, setDraft] = useState<PolaroidItem>(() => newDraft());
   const [saved, setSaved] = useState<PolaroidItem[]>([]);
@@ -506,6 +538,8 @@ function CriarPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<ImageDragState | null>(null);
   const cornerDragRef = useRef<CornerDragState | null>(null);
+  const imagePointersRef = useRef<Map<number, ActiveImagePointer>>(new Map());
+  const pinchRef = useRef<ImagePinchState | null>(null);
   const uploadAbortRef = useRef<string | null>(null);
 
   const tpl = templates.find((t) => t.id === draft.templateId)!;
@@ -573,6 +607,15 @@ function CriarPage() {
       return saved.some((item) => item.id === current) ? current : null;
     });
   }, [saved]);
+
+  useEffect(() => {
+    if (isAdjustingImage) return;
+
+    dragRef.current = null;
+    cornerDragRef.current = null;
+    pinchRef.current = null;
+    imagePointersRef.current.clear();
+  }, [isAdjustingImage]);
 
   useEffect(() => {
     if (!flipMenuOpen) return;
@@ -902,8 +945,36 @@ function CriarPage() {
   function onStartImageDrag(e: React.PointerEvent<HTMLDivElement>) {
     if (!isAdjustingImage || !draft.photoLocalUrl) return;
 
+    e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
+    imagePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    const activePointers = Array.from(imagePointersRef.current.entries());
+
+    if (activePointers.length >= 2) {
+      const [firstEntry, secondEntry] = activePointers;
+      const [firstId, firstPointer] = firstEntry;
+      const [secondId, secondPointer] = secondEntry;
+      const center = getPointerCenter(firstPointer, secondPointer);
+
+      pinchRef.current = {
+        pointerIds: [firstId, secondId],
+        startDistance: Math.max(1, getPointerDistance(firstPointer, secondPointer)),
+        startCenterX: center.x,
+        startCenterY: center.y,
+        startScale: draft.imageScale,
+        startPosX: draft.imagePosX,
+        startPosY: draft.imagePosY,
+        areaWidth: rect.width,
+        areaHeight: rect.height,
+      };
+      dragRef.current = null;
+      return;
+    }
+
+    pinchRef.current = null;
     dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -913,26 +984,55 @@ function CriarPage() {
       areaWidth: rect.width,
       areaHeight: rect.height,
     };
-
-    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function onMoveImageDrag(e: React.PointerEvent<HTMLDivElement>) {
     const cDrag = cornerDragRef.current;
     if (cDrag && cDrag.pointerId === e.pointerId) {
+      e.preventDefault();
       const dx = e.clientX - cDrag.startX;
       const dy = e.clientY - cDrag.startY;
       const signX = cDrag.corner === "tr" || cDrag.corner === "br" ? 1 : -1;
       const signY = cDrag.corner === "bl" || cDrag.corner === "br" ? 1 : -1;
       const delta = (dx * signX + dy * signY) / Math.max(cDrag.areaSize, 1);
-      const newScale = Math.max(1, Math.min(4, cDrag.startScale + delta * 2));
+      const newScale = clampImageScale(cDrag.startScale + delta * 2);
       setDraft((d) => ({ ...d, imageScale: newScale }));
       return;
+    }
+
+    if (imagePointersRef.current.has(e.pointerId)) {
+      e.preventDefault();
+      imagePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    const pinch = pinchRef.current;
+    if (isAdjustingImage && pinch) {
+      const firstPointer = imagePointersRef.current.get(pinch.pointerIds[0]);
+      const secondPointer = imagePointersRef.current.get(pinch.pointerIds[1]);
+
+      if (firstPointer && secondPointer) {
+        const distance = Math.max(1, getPointerDistance(firstPointer, secondPointer));
+        const center = getPointerCenter(firstPointer, secondPointer);
+        const nextScale = clampImageScale(pinch.startScale * (distance / pinch.startDistance));
+        const deltaX = center.x - pinch.startCenterX;
+        const deltaY = center.y - pinch.startCenterY;
+        const nextX = clampPercent(pinch.startPosX - (deltaX / Math.max(pinch.areaWidth, 1)) * 100);
+        const nextY = clampPercent(pinch.startPosY - (deltaY / Math.max(pinch.areaHeight, 1)) * 100);
+
+        setDraft((d) => ({
+          ...d,
+          imageScale: nextScale,
+          imagePosX: nextX,
+          imagePosY: nextY,
+        }));
+        return;
+      }
     }
 
     const drag = dragRef.current;
     if (!isAdjustingImage || !drag || drag.pointerId !== e.pointerId) return;
 
+    e.preventDefault();
     const deltaX = e.clientX - drag.startX;
     const deltaY = e.clientY - drag.startY;
 
@@ -949,6 +1049,14 @@ function CriarPage() {
     if (dragRef.current?.pointerId === e.pointerId) {
       dragRef.current = null;
     }
+    imagePointersRef.current.delete(e.pointerId);
+    if (
+      pinchRef.current?.pointerIds[0] === e.pointerId ||
+      pinchRef.current?.pointerIds[1] === e.pointerId ||
+      imagePointersRef.current.size < 2
+    ) {
+      pinchRef.current = null;
+    }
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -959,6 +1067,7 @@ function CriarPage() {
     corner: "tl" | "tr" | "bl" | "br",
   ) {
     e.stopPropagation();
+    e.preventDefault();
     const parent = e.currentTarget.parentElement as HTMLElement;
     const rect = parent.getBoundingClientRect();
     cornerDragRef.current = {
@@ -1366,7 +1475,7 @@ function CriarPage() {
                                 className={cn(
                                   "relative w-full overflow-hidden bg-muted transition-all duration-300",
                                   tpl.toneClass,
-                                  isAdjustingImage ? "z-[70] cursor-move" : "",
+                                  isAdjustingImage ? "z-[70] cursor-move touch-none select-none" : "",
                                 )}
                                 style={{
                                   height: `${selectedPolaroidSize.previewImageHeightCm}cm`,

@@ -496,7 +496,6 @@ function CriarPage() {
   const [mobileCaptionEditing, setMobileCaptionEditing] = useState(false);
   const [previewStartIndex, setPreviewStartIndex] = useState(0);
   const [previewPolaroidId, setPreviewPolaroidId] = useState<string | null>(null);
-  const [draftIdPendenteRemocao, setDraftIdPendenteRemocao] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [flipMenuOpen, setFlipMenuOpen] = useState(false);
   const [mobileSizeDropdownOpen, setMobileSizeDropdownOpen] = useState(false);
@@ -856,6 +855,13 @@ function CriarPage() {
 
   function removerPolaroidDoCarrinho(id: string) {
     setSaved((s) => s.filter((x) => x.id !== id));
+    setPreviewPolaroidId((current) => (current === id ? null : current));
+    setDraft((current) =>
+      current.id === id ? newDraft(current.templateId, current.polaroidSizeId) : current,
+    );
+    setStyleWarning("");
+    setIsAdjustingImage(false);
+    setMobileCaptionEditing(false);
   }
 
   function limparDraftAtual() {
@@ -883,22 +889,7 @@ function CriarPage() {
       return;
     }
 
-    setDraftIdPendenteRemocao(draft.id);
-  }
-
-  function cancelarRemocaoDraft() {
-    setDraftIdPendenteRemocao(null);
-  }
-
-  function confirmarRemocaoDraft() {
-    if (!draftIdPendenteRemocao) return;
-
-    removerPolaroidDoCarrinho(draftIdPendenteRemocao);
-    setDraftIdPendenteRemocao(null);
-    setStyleWarning("");
-    setIsAdjustingImage(false);
-    setMobileCaptionEditing(false);
-    setDraft((d) => newDraft(d.templateId, d.polaroidSizeId));
+    removerPolaroidDoCarrinho(draft.id);
   }
 
   function removerPolaroidSelecionada() {
@@ -1712,9 +1703,11 @@ function CriarPage() {
 
                                   <button
                                     type="button"
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
+                                      e.preventDefault();
                                       e.stopPropagation();
-                                      setDraftIdPendenteRemocao(item.id);
+                                      removerPolaroidDoCarrinho(item.id);
                                     }}
                                     className="absolute -right-1.5 -top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-border/70 bg-paper shadow-soft transition-opacity duration-150 hover:bg-cream focus:outline-none"
                                     aria-label="Remover Polaroid"
@@ -2024,9 +2017,11 @@ function CriarPage() {
 
                           <button
                             type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
-                              setDraftIdPendenteRemocao(item.id);
+                              removerPolaroidDoCarrinho(item.id);
                             }}
                             className="absolute -right-1.5 -top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-border/70 bg-paper shadow-soft transition-opacity duration-150 hover:bg-cream focus:outline-none"
                             aria-label="Remover Polaroid"
@@ -2668,10 +2663,20 @@ function CriarPage() {
               </span>
             </p>
 
-            <div className="pointer-events-none absolute inset-0 z-20 flex select-none items-center justify-center overflow-hidden">
-              <span className="-rotate-12 text-4xl font-bold uppercase tracking-[0.28em] text-ink/15 sm:text-6xl">
-                PRÉVIA
-              </span>
+            <div className="pointer-events-none absolute inset-0 z-20 select-none overflow-hidden">
+              <div className="absolute inset-[-28%] -rotate-12 grid grid-cols-4 grid-rows-[repeat(19,minmax(0,1fr))] place-items-center">
+                {Array.from({ length: 76 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={cn(
+                      "whitespace-nowrap text-center text-[0.5rem] font-black uppercase tracking-[0.18em] text-ink/48 sm:text-[0.62rem]",
+                      index % 4 === 0 && "text-ink/60",
+                    )}
+                  >
+                    PRÉVIA
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

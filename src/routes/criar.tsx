@@ -2227,6 +2227,93 @@ function CriarPage() {
         </div>
       </div>
 
+      {/* MOBILE: Painel de fontes flutuante */}
+      {mobileFontPanelOpen && (
+        <div
+          className="lg:hidden fixed left-0 right-0 z-[55] rounded-t-2xl border-t border-border bg-paper shadow-[0_-4px_20px_rgba(60,45,30,0.1)]"
+          style={{ bottom: "calc(68px + env(safe-area-inset-bottom))" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-4 pb-1 pt-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Fonte
+            </span>
+          </div>
+          <div
+            className="flex flex-row gap-3 overflow-x-auto px-4 pb-4 pt-2"
+            style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
+          >
+            {fontStyles.map((style) => {
+              const active = style.id === draft.fontStyleId;
+              return (
+                <button
+                  key={style.id}
+                  type="button"
+                  onClick={() => {
+                    selecionarFonte(style);
+                    setMobileFontPanelOpen(false);
+                  }}
+                  style={{ scrollSnapAlign: "start" }}
+                  className={cn(
+                    "criar-control flex shrink-0 flex-col items-center gap-1 rounded-xl border-2 px-3 py-2.5 transition-all",
+                    active
+                      ? "border-ink bg-ink/5"
+                      : "border-border bg-paper hover:bg-cream",
+                  )}
+                >
+                  <span className={cn("text-base leading-tight text-ink", style.fontClass)}>
+                    AaBb
+                  </span>
+                  <span className="max-w-[72px] truncate text-center text-[10px] leading-tight text-muted-foreground">
+                    {style.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE: Painel de tamanho do texto flutuante */}
+      {mobileSizePanelOpen && (
+        <div
+          className="lg:hidden fixed left-0 right-0 z-[55] rounded-t-2xl border-t border-border bg-paper shadow-[0_-4px_20px_rgba(60,45,30,0.1)]"
+          style={{ bottom: "calc(68px + env(safe-area-inset-bottom))" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-4 pb-1 pt-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Tamanho do texto
+            </span>
+          </div>
+          <div className="flex flex-row gap-3 px-4 pb-4 pt-2">
+            {(["sm", "md", "lg"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setDraft((d) => ({ ...d, size: s }));
+                  setMobileSizePanelOpen(false);
+                }}
+                className={cn(
+                  "criar-control flex flex-1 flex-col items-center gap-1 rounded-xl border-2 py-3 transition-all",
+                  draft.size === s
+                    ? "border-ink bg-ink text-paper"
+                    : "border-border bg-paper text-ink hover:bg-cream",
+                )}
+              >
+                <span className="text-lg font-semibold leading-none">
+                  {s === "sm" ? "P" : s === "md" ? "M" : "G"}
+                </span>
+                <span className="text-[10px] leading-none opacity-70">
+                  {s === "sm" ? "Pequeno" : s === "md" ? "Médio" : "Grande"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* MODAL CONFIRMAÇÃO REMOÇÃO */}
       <Dialog
         open={draftIdPendenteRemocao !== null}

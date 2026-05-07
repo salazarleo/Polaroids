@@ -402,6 +402,17 @@ function getGallerySlotStyle(size: PolaroidSizeDef) {
   };
 }
 
+function getMobileGallerySlotStyle(size: PolaroidSizeDef) {
+  const scale = size.galleryScale * 0.78;
+  const scaledWidth = size.widthCm * scale;
+  const scaledHeight = size.heightCm * scale;
+
+  return {
+    width: `${Math.ceil(scaledWidth * 38)}px`,
+    height: `${Math.ceil(scaledHeight * 38)}px`,
+  };
+}
+
 function getCaptionSizeClass(polaroidSizeId: PolaroidSizeId, size: Size) {
   return captionSizeClass[polaroidSizeId][size];
 }
@@ -514,6 +525,13 @@ function CriarPage() {
   );
   const uploadPlaceholderScale = 1 / selectedPolaroidSize.previewScale;
   const measurementLabelFontSizePx = 11 / selectedPolaroidSize.previewScale;
+  const cssPxPerCm = 37.795;
+  const mobilePreviewMaxWidthPx = 300;
+  const mobilePreviewMaxHeightPx = 340;
+  const mobileCombinedScale = Math.min(
+    mobilePreviewMaxWidthPx / (selectedPolaroidSize.previewWidthCm * cssPxPerCm),
+    mobilePreviewMaxHeightPx / (selectedPolaroidSize.previewHeightCm * cssPxPerCm),
+  );
   const quantidadePolaroids = saved.length;
   const totalPedidoCentavos = calcularPrecoPolaroidsCentavos(quantidadePolaroids);
   const totalPedidoFormatado = formatarPrecoCentavos(totalPedidoCentavos);
@@ -1297,40 +1315,20 @@ function CriarPage() {
           {/* CENTRO - PREVIEW */}
           <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0 max-lg:flex max-lg:flex-col max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
             <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft max-lg:flex-1 max-lg:min-h-0 max-lg:items-stretch">
-              <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:gap-0">
-                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:grid max-lg:grid-cols-[2.5rem_1fr_4rem] max-lg:items-center max-lg:gap-2 max-lg:flex-1">
-                  {/* Mobile: col 1 = medida de altura */}
-                  <div
-                    className={cn(
-                      "lg:hidden flex items-center justify-center transition-opacity duration-200",
-                      isAdjustingImage ? "opacity-20 blur-[1px]" : "opacity-100",
-                    )}
-                  >
-                    <div
-                      className="relative w-5"
-                      style={{
-                        height: `${selectedPolaroidSize.previewMeasureHeightCm * selectedPolaroidSize.previewScale}cm`,
-                      }}
-                    >
-                      <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-muted-foreground/55" />
-                      <span className="absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
-                      <span className="absolute bottom-0 left-1/2 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">
-                        {selectedPolaroidSize.heightCm} cm
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex min-h-0 flex-1 items-center justify-center">
-                    <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible">
+              <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:justify-center max-lg:gap-0">
+                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:w-full max-lg:items-center max-lg:justify-center max-lg:flex-none">
+                  <div className="flex min-h-0 w-full min-w-0 flex-1 items-center justify-center">
+                    <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible max-lg:h-[350px] max-lg:max-w-[300px]">
                       <div
                         className={cn(
-                          "absolute left-1/2 top-1/2 h-[11.35cm] w-[10cm] transition-transform duration-300",
+                          "absolute left-1/2 top-1/2 h-[11.35cm] w-[10cm] criar-preview-transform transition-transform duration-300",
                           isAdjustingImage ? "z-[60]" : "",
                         )}
                         style={{
-                          transform: `translate(-50%, -50%) scale(${selectedPolaroidSize.previewScale})`,
                           transformOrigin: "center center",
-                        }}
+                          "--preview-scale": String(selectedPolaroidSize.previewScale),
+                          "--mobile-scale": String(mobileCombinedScale),
+                        } as React.CSSProperties}
                       >
                         {/* MEDIDA VERTICAL */}
                         <div
@@ -1366,7 +1364,7 @@ function CriarPage() {
                         </div>
 
                         {/* POLAROID CENTRALIZADA */}
-                        <div className="absolute left-1/2 top-0 flex h-[10cm] w-[8cm] -translate-x-1/2 items-center justify-center">
+                        <div className="absolute left-1/2 top-0 flex h-[10cm] w-[8cm] -translate-x-1/2 items-center justify-center max-lg:top-1/2 max-lg:-translate-y-1/2">
                           <div
                             className="polaroid box-border max-w-full transition-all duration-300"
                             style={{
@@ -1473,65 +1471,65 @@ function CriarPage() {
                                 top: `calc(0.75rem + ${selectedPolaroidSize.previewImageHeightCm}cm)`,
                               }}
                             >
-                              {isAdjustingImage ? (
-                                <div
-                                  className="inline-flex"
-                                  style={{
-                                    transform: `scale(${1 / selectedPolaroidSize.previewScale})`,
-                                  }}
-                                >
-                                  <Button
-                                    type="button"
-                                    onClick={() => setIsAdjustingImage(false)}
-                                    className="h-9 w-[92px] cursor-pointer rounded-md border border-transparent bg-black px-0 text-sm font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
+                                {isAdjustingImage ? (
+                                  <div
+                                    className="inline-flex"
+                                    style={{
+                                      transform: `scale(${1 / selectedPolaroidSize.previewScale})`,
+                                    }}
                                   >
-                                    Pronto
-                                  </Button>
-                                </div>
-                              ) : mobileCaptionEditing ? (
-                                <input
-                                  autoFocus
-                                  value={draft.caption}
-                                  onChange={(e) =>
-                                    setDraft((d) => ({
-                                      ...d,
-                                      caption: e.target.value,
-                                    }))
-                                  }
-                                  onBlur={() => setMobileCaptionEditing(false)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      setMobileCaptionEditing(false);
+                                    <Button
+                                      type="button"
+                                      onClick={() => setIsAdjustingImage(false)}
+                                      className="h-9 w-[92px] cursor-pointer rounded-md border border-transparent bg-black px-0 text-sm font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
+                                    >
+                                      Pronto
+                                    </Button>
+                                  </div>
+                                ) : mobileCaptionEditing ? (
+                                  <input
+                                    autoFocus
+                                    value={draft.caption}
+                                    onChange={(e) =>
+                                      setDraft((d) => ({
+                                        ...d,
+                                        caption: e.target.value,
+                                      }))
                                     }
-                                  }}
-                                  maxLength={60}
-                                  className={cn(
-                                    "w-full rounded-md border border-border bg-paper/90 px-2 py-1 leading-tight text-ink outline-none transition-all duration-200 focus:border-sepia/60 focus:shadow-soft",
-                                    alignClass[draft.align],
-                                    draftFontStyle?.fontClass,
-                                    fontWeightClass[draft.fontWeightId],
-                                    getCaptionSizeClass(draft.polaroidSizeId, draft.size),
-                                  )}
-                                />
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setMobileCaptionEditing(true)}
-                                  className={cn(
-                                    "inline-block w-full max-w-full cursor-text break-words bg-transparent leading-tight outline-none transition-colors duration-200 hover:text-ink",
-                                    alignClass[draft.align],
-                                    draftFontStyle?.fontClass,
-                                    fontWeightClass[draft.fontWeightId],
-                                    getCaptionSizeClass(draft.polaroidSizeId, draft.size),
-                                  )}
-                                >
-                                  {draft.caption || (
-                                    <span className="text-sm text-muted-foreground/70 lg:hidden">
-                                      Toque para editar
-                                    </span>
-                                  )}
-                                </button>
-                              )}
+                                    onBlur={() => setMobileCaptionEditing(false)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        setMobileCaptionEditing(false);
+                                      }
+                                    }}
+                                    maxLength={60}
+                                    className={cn(
+                                      "w-full rounded-md border border-border bg-paper/90 px-2 py-1 leading-tight text-ink outline-none transition-all duration-200 focus:border-sepia/60 focus:shadow-soft",
+                                      alignClass[draft.align],
+                                      draftFontStyle?.fontClass,
+                                      fontWeightClass[draft.fontWeightId],
+                                      getCaptionSizeClass(draft.polaroidSizeId, draft.size),
+                                    )}
+                                  />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setMobileCaptionEditing(true)}
+                                    className={cn(
+                                      "inline-block w-full max-w-full cursor-text break-words bg-transparent leading-tight outline-none transition-colors duration-200 hover:text-ink",
+                                      alignClass[draft.align],
+                                      draftFontStyle?.fontClass,
+                                      fontWeightClass[draft.fontWeightId],
+                                      getCaptionSizeClass(draft.polaroidSizeId, draft.size),
+                                    )}
+                                  >
+                                    {draft.caption || (
+                                      <span className="text-muted-foreground/70 lg:hidden">
+                                        Toque para editar
+                                      </span>
+                                    )}
+                                  </button>
+                                )}
                             </div>
                           </div>
                         </div>
@@ -1539,7 +1537,7 @@ function CriarPage() {
                         {/* MEDIDA HORIZONTAL */}
                         <div
                           className={cn(
-                            "absolute h-4 transition-all duration-300",
+                            "absolute h-4 transition-all duration-300 max-lg:hidden",
                             isAdjustingImage ? "opacity-20 blur-[1px]" : "opacity-100",
                           )}
                           style={{
@@ -1565,9 +1563,9 @@ function CriarPage() {
                     </div>
                   </div>
 
-                  {/* Mobile side buttons (col 3): Trocar, Remover, Salvar */}
+                  {/* Mobile action buttons: below the Polaroid */}
                   <div
-                    className="lg:hidden flex flex-col items-center justify-center self-stretch gap-3 px-2"
+                    className="lg:hidden relative z-30 mt-2 flex w-full flex-row items-center justify-center gap-4"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {draft.photoLocalUrl && !isAdjustingImage && (
@@ -1576,12 +1574,12 @@ function CriarPage() {
                           <button
                             type="button"
                             onClick={pickFile}
-                            className="criar-control flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-paper shadow-soft transition-all active:scale-95"
+                            className="criar-control flex h-8 w-8 items-center justify-center rounded-lg border border-black bg-black shadow-soft transition-all active:scale-95"
                             aria-label="Trocar foto"
                           >
-                            <Upload className="h-4 w-4 text-ink" />
+                            <Upload className="h-3.5 w-3.5 text-white" />
                           </button>
-                          <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                          <span className="text-[8px] font-medium leading-none text-ink">
                             Trocar
                           </span>
                         </div>
@@ -1590,12 +1588,12 @@ function CriarPage() {
                           <button
                             type="button"
                             onClick={removerDraftAtual}
-                            className="criar-control flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-paper shadow-soft transition-all active:scale-95"
+                            className="criar-control flex h-8 w-8 items-center justify-center rounded-lg border border-black bg-black shadow-soft transition-all active:scale-95"
                             aria-label="Remover foto"
                           >
-                            <Trash2 className="h-4 w-4 text-ink" />
+                            <Trash2 className="h-3.5 w-3.5 text-white" />
                           </button>
-                          <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                          <span className="text-[8px] font-medium leading-none text-ink">
                             Remover
                           </span>
                         </div>
@@ -1604,12 +1602,12 @@ function CriarPage() {
                           <button
                             type="button"
                             onClick={concluir}
-                            className="criar-control flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white shadow-soft transition-all active:scale-95"
+                            className="criar-control flex h-8 w-8 items-center justify-center rounded-lg border border-black bg-black shadow-soft transition-all active:scale-95"
                             aria-label="Salvar Polaroid"
                           >
-                            <Save className="h-4 w-4 text-ink" />
+                            <Save className="h-3.5 w-3.5 text-white" />
                           </button>
-                          <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                          <span className="text-[8px] font-medium leading-none text-ink">
                             Salvar
                           </span>
                         </div>
@@ -1619,33 +1617,34 @@ function CriarPage() {
                 </div>
 
                 {/* MOBILE: Card "Minhas Polaroids" sempre aberto */}
-                <div className="lg:hidden mt-2 shrink-0 mx-0 rounded-2xl border border-border bg-paper shadow-soft">
+                <div className="lg:hidden mx-auto mt-5 flex h-[220px] w-[320px] max-w-[calc(100%-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-paper shadow-soft">
                   {/* Cabeçalho */}
-                  <div className="flex items-center px-4 py-3">
-                    <div className="flex flex-col items-start gap-0.5">
+                  <div className="flex h-[64px] shrink-0 items-center justify-center px-4 text-center">
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="font-display text-base font-medium text-ink">
                         Minhas Polaroids
                       </span>
-                      {saved.length > 0 && (
-                        <span className="text-[11px] text-muted-foreground">
-                          {saved.length} {saved.length === 1 ? "foto" : "fotos"} •{" "}
-                          {totalPedidoFormatado}
-                        </span>
-                      )}
+                      <span className="min-h-[14px] text-[11px] text-muted-foreground">
+                        {saved.length > 0
+                          ? `${saved.length} ${saved.length === 1 ? "foto" : "fotos"} • ${totalPedidoFormatado}`
+                          : ""}
+                      </span>
                     </div>
                   </div>
 
                   {/* Conteúdo sempre visível */}
-                  <div className="border-t border-border">
+                  <div className="min-h-0 flex-1 overflow-y-hidden border-t border-border">
                     {saved.length === 0 ? (
-                      <div className="mx-3 mb-3 mt-2 rounded-xl border border-dashed border-border p-4 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          Nenhuma Polaroid criada ainda.
-                        </p>
+                      <div className="flex h-full items-center justify-center p-3">
+                        <div className="flex h-full w-full items-center justify-center rounded-xl border border-dashed border-border p-4 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            Nenhuma Polaroid criada ainda.
+                          </p>
+                        </div>
                       </div>
                     ) : (
                       <div
-                        className="flex flex-row gap-3 overflow-x-auto px-3 pb-3 pt-2"
+                        className="flex h-full flex-row items-center gap-3 overflow-x-auto overflow-y-hidden px-3 py-3"
                         style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
                       >
                           {saved.map((item) => {
@@ -1656,22 +1655,23 @@ function CriarPage() {
                             const itemPolaroidSize =
                               polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
                               polaroidSizes[0];
-                            const gallerySlotStyle = getGallerySlotStyle(itemPolaroidSize);
+                            const gallerySlotStyle = getMobileGallerySlotStyle(itemPolaroidSize);
+                            const mobileGalleryScale = itemPolaroidSize.galleryScale * 0.78;
                             const cardWidth = gallerySlotStyle.width;
                             const isSelected = item.id === draft.id;
 
                             return (
                               <div
                                 key={item.id}
-                                className="criar-saved-card criar-fade-up relative shrink-0"
+                                className="criar-saved-card criar-fade-up relative flex h-full shrink-0 flex-col items-center justify-center"
                                 style={{ width: cardWidth, scrollSnapAlign: "start" }}
                               >
-                                <div className="mb-2 text-center text-[11px] font-medium text-muted-foreground">
+                                <div className="mb-1 text-center text-[10px] font-medium leading-none text-muted-foreground">
                                   {itemPolaroidSize.label} cm
                                 </div>
 
                                 <div
-                                  className="relative flex items-start justify-center"
+                                  className="relative flex shrink-0 items-start justify-center"
                                   style={gallerySlotStyle}
                                 >
                                   <button
@@ -1700,7 +1700,7 @@ function CriarPage() {
                                   <div
                                     className="origin-top-left"
                                     style={{
-                                      transform: `scale(${itemPolaroidSize.galleryScale})`,
+                                      transform: `scale(${mobileGalleryScale})`,
                                       transformOrigin: "top center",
                                     }}
                                   >

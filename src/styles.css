@@ -273,6 +273,16 @@
     animation-delay: 280ms;
   }
 
+  /* Mobile: polaroid scale driven by CSS variables set via inline style */
+  .criar-preview-transform {
+    transform: translate(-50%, -50%) scale(var(--preview-scale));
+  }
+  @media (max-width: 1023px) {
+    .criar-preview-transform {
+      transform: translate(-50%, -50%) scale(var(--mobile-scale));
+    }
+  }
+
   .criar-panel-motion,
   .criar-control,
   .criar-font-item,

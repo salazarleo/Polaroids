@@ -12,9 +12,9 @@ const PHOTO_BG_COLOR = 0xeee7dcff;
 const CAPTION_TEXT_COLOR = 0x2a2018ff;
 
 const POLAROID_PRINT_SIZES_CM = {
-  "7x10": { widthCm: 7, heightCm: 10, photoHeightCm: 7.8 },
-  "5x8": { widthCm: 5, heightCm: 8, photoHeightCm: 6.2 },
-  "4x5": { widthCm: 4, heightCm: 5, photoHeightCm: 3.6 },
+  "7x10": { widthCm: 7, heightCm: 10, photoHeightCm: 7.9 },
+  "5x8": { widthCm: 5, heightCm: 8, photoHeightCm: 6.3 },
+  "4x5": { widthCm: 4, heightCm: 5, photoHeightCm: 3.55 },
 } as const;
 
 const CAPTION_FONT_REM: Record<string, Record<string, number>> = {

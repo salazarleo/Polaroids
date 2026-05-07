@@ -283,13 +283,13 @@ const polaroidSizes: PolaroidSizeDef[] = [
     label: "7x10",
     widthCm: 7,
     heightCm: 10,
-    imageHeightCm: 8.8,
+    imageHeightCm: 7.9,
     measureWidthCm: 5.8,
     measureHeightCm: 8.2,
 
     previewWidthCm: 7,
     previewHeightCm: 10,
-    previewImageHeightCm: 8.4,
+    previewImageHeightCm: 7.9,
     previewMeasureWidthCm: 5.8,
     previewMeasureHeightCm: 8.2,
     previewScale: 0.82,
@@ -300,13 +300,13 @@ const polaroidSizes: PolaroidSizeDef[] = [
     label: "5x8",
     widthCm: 5,
     heightCm: 8,
-    imageHeightCm: 7.2,
+    imageHeightCm: 6.3,
     measureWidthCm: 4.1,
     measureHeightCm: 6.4,
 
     previewWidthCm: 5,
     previewHeightCm: 8,
-    previewImageHeightCm: 6.7,
+    previewImageHeightCm: 6.3,
     previewMeasureWidthCm: 4.1,
     previewMeasureHeightCm: 6.4,
     previewScale: 1.05,
@@ -317,13 +317,13 @@ const polaroidSizes: PolaroidSizeDef[] = [
     label: "4x5",
     widthCm: 4,
     heightCm: 5,
-    imageHeightCm: 4.4,
+    imageHeightCm: 3.55,
     measureWidthCm: 3.1,
     measureHeightCm: 4,
 
     previewWidthCm: 4,
     previewHeightCm: 5,
-    previewImageHeightCm: 4.0,
+    previewImageHeightCm: 3.55,
     previewMeasureWidthCm: 3.1,
     previewMeasureHeightCm: 4,
     previewScale: 1.55,
@@ -403,7 +403,7 @@ function getGallerySlotStyle(size: PolaroidSizeDef) {
 }
 
 function getMobileGallerySlotStyle(size: PolaroidSizeDef) {
-  const scale = size.galleryScale * 0.78;
+  const scale = size.galleryScale * 0.68;
   const scaledWidth = size.widthCm * scale;
   const scaledHeight = size.heightCm * scale;
 
@@ -525,8 +525,9 @@ function CriarPage() {
   const uploadPlaceholderScale = 1 / selectedPolaroidSize.previewScale;
   const measurementLabelFontSizePx = 11 / selectedPolaroidSize.previewScale;
   const cssPxPerCm = 37.795;
+  const compactMobilePreview = Boolean(draft.photoLocalUrl && mobileSavedOpen);
   const mobilePreviewMaxWidthPx = 300;
-  const mobilePreviewMaxHeightPx = 340;
+  const mobilePreviewMaxHeightPx = compactMobilePreview ? 300 : 340;
   const mobileCombinedScale = Math.min(
     mobilePreviewMaxWidthPx / (selectedPolaroidSize.previewWidthCm * cssPxPerCm),
     mobilePreviewMaxHeightPx / (selectedPolaroidSize.previewHeightCm * cssPxPerCm),
@@ -1310,7 +1311,12 @@ function CriarPage() {
               <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:justify-center max-lg:gap-0">
                 <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:w-full max-lg:items-center max-lg:justify-center max-lg:flex-none">
                   <div className="flex min-h-0 w-full min-w-0 flex-1 items-center justify-center">
-                    <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible max-lg:h-[350px] max-lg:max-w-[300px]">
+                    <div
+                      className={cn(
+                        "relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible max-lg:max-w-[300px] transition-[height,max-width] duration-200 ease-out",
+                        compactMobilePreview ? "max-lg:h-[300px]" : "max-lg:h-[350px]",
+                      )}
+                    >
                       <div
                         className={cn(
                           "absolute left-1/2 top-1/2 h-[11.35cm] w-[10cm] criar-preview-transform transition-transform duration-300",
@@ -1611,15 +1617,15 @@ function CriarPage() {
                 {/* MOBILE: Card "Minhas Polaroids" colapsavel */}
                 <div
                   className={cn(
-                    "lg:hidden mx-auto mt-5 flex w-[320px] max-w-[calc(100%-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-paper shadow-soft transition-[height] duration-200 ease-out",
-                    mobileSavedOpen ? "h-[220px]" : "h-[64px]",
+                    "lg:hidden mx-auto flex w-[320px] max-w-[calc(100%-2rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-paper shadow-soft transition-[height,margin-top] duration-200 ease-out",
+                    mobileSavedOpen ? "mt-2 h-[176px]" : "mt-5 h-[56px]",
                   )}
                 >
                   {/* Cabecalho */}
                   <button
                     type="button"
                     onClick={() => setMobileSavedOpen((open) => !open)}
-                    className="relative flex h-[64px] w-full shrink-0 items-center justify-center border-0 bg-transparent px-10 text-center outline-none transition-colors hover:bg-cream/40 focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-inset"
+                    className="relative flex h-[56px] w-full shrink-0 items-center justify-center border-0 bg-transparent px-10 text-center outline-none transition-colors hover:bg-cream/40 focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-inset"
                     aria-expanded={mobileSavedOpen}
                     aria-controls="mobile-saved-polaroids-panel"
                     aria-label={
@@ -1660,7 +1666,7 @@ function CriarPage() {
                         </div>
                       ) : (
                         <div
-                          className="flex h-full flex-row items-center gap-3 overflow-x-auto overflow-y-hidden px-3 py-3"
+                          className="flex h-full flex-row items-center gap-2 overflow-x-auto overflow-y-hidden px-3 py-1.5"
                           style={{
                             scrollSnapType: "x mandatory",
                             WebkitOverflowScrolling: "touch",
@@ -1675,7 +1681,7 @@ function CriarPage() {
                               polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
                               polaroidSizes[0];
                             const gallerySlotStyle = getMobileGallerySlotStyle(itemPolaroidSize);
-                            const mobileGalleryScale = itemPolaroidSize.galleryScale * 0.78;
+                            const mobileGalleryScale = itemPolaroidSize.galleryScale * 0.68;
                             const cardWidth = gallerySlotStyle.width;
                             const isSelected = item.id === draft.id;
 
@@ -2100,7 +2106,10 @@ function CriarPage() {
 
       {/* MOBILE: Barra inferior fixa */}
       <div
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-paper/95 backdrop-blur-sm shadow-[0_-1px_12px_rgba(60,45,30,0.08)]"
+        className={cn(
+          "lg:hidden fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-paper/95 backdrop-blur-sm shadow-[0_-1px_12px_rgba(60,45,30,0.08)]",
+          open && "hidden",
+        )}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex items-center justify-around px-2 pb-1 pt-2">
@@ -2255,7 +2264,7 @@ function CriarPage() {
       </div>
 
       {/* MOBILE: Painel de fontes flutuante */}
-      {mobileFontPanelOpen && (
+      {!open && mobileFontPanelOpen && (
         <div
           className="lg:hidden fixed left-0 right-0 z-[55] rounded-t-2xl border-t border-border bg-paper shadow-[0_-4px_20px_rgba(60,45,30,0.1)]"
           style={{ bottom: "calc(68px + env(safe-area-inset-bottom))" }}
@@ -2302,7 +2311,7 @@ function CriarPage() {
       )}
 
       {/* MOBILE: Painel de tamanho do texto flutuante */}
-      {mobileSizePanelOpen && (
+      {!open && mobileSizePanelOpen && (
         <div
           className="lg:hidden fixed left-0 right-0 z-[55] rounded-t-2xl border-t border-border bg-paper shadow-[0_-4px_20px_rgba(60,45,30,0.1)]"
           style={{ bottom: "calc(68px + env(safe-area-inset-bottom))" }}
@@ -2342,379 +2351,352 @@ function CriarPage() {
       )}
 
       {/* MODAL CONFIRMAÇÃO REMOÇÃO */}
-      <Dialog
-        open={draftIdPendenteRemocao !== null}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) cancelarRemocaoDraft();
-        }}
-      >
-        <DialogContent className="rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-sm">
-          <DialogHeader className="text-center sm:text-center">
-            <DialogTitle className="font-display text-2xl font-medium text-ink">
-              Apagar Polaroid?
-            </DialogTitle>
-            <DialogDescription className="text-center text-sm text-muted-foreground">
-              Tem certeza que quer apagar a Polaroid?
-            </DialogDescription>
-          </DialogHeader>
+{/* MODAL FINALIZAÇÃO */}
+{/* MODAL FINALIZAÇÃO */}
+<Dialog open={open} onOpenChange={setOpen}>
+  <DialogContent className="z-[100] flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1.25rem)] max-w-[21rem] flex-col gap-2 overflow-y-auto rounded-2xl border-border bg-[#f1e7da] p-3 shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-[24rem] sm:p-4 [&>button:last-child]:right-2 [&>button:last-child]:top-2 [&>button:last-child]:h-6 [&>button:last-child]:w-6 [&>button:last-child]:rounded-full [&>button:last-child]:border-0 [&>button:last-child]:bg-black [&>button:last-child]:p-0 [&>button:last-child]:opacity-100 [&>button:last-child]:shadow-soft [&>button:last-child]:transition-all [&>button:last-child]:duration-200 hover:[&>button:last-child]:bg-black/90 [&>button:last-child>svg]:h-3 [&>button:last-child>svg]:w-3 [&>button:last-child>svg]:text-white sm:[&>button:last-child]:right-3 sm:[&>button:last-child]:top-3 sm:[&>button:last-child]:h-6 sm:[&>button:last-child]:w-6 sm:[&>button:last-child>svg]:h-3 sm:[&>button:last-child>svg]:w-3">
+    <DialogHeader className="space-y-0 px-8 text-center sm:px-4">
+      <DialogTitle className="w-full text-center font-display text-xl font-medium leading-tight text-ink sm:whitespace-nowrap sm:text-2xl">
+        Suas Polaroids estão prontas
+      </DialogTitle>
+    </DialogHeader>
 
-          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-center">
-            <Button
+    <div className="mb-1 mt-0">
+      {!carrinhoVazio && (
+        <p className="mb-2 text-center text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">
+          Revise suas Polaroids
+        </p>
+      )}
+
+      {carrinhoVazio ? (
+        <div className="criar-alert-card rounded-xl border border-dashed border-border bg-paper/55 px-3 py-4 text-center">
+          <p className="text-xs font-medium text-ink sm:text-sm">
+            Nenhuma Polaroid selecionada.
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
+            Feche este modal para criar ou adicionar uma nova Polaroid.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+          {showPreviewControls && (
+            <button
               type="button"
-              variant="outline"
-              onClick={cancelarRemocaoDraft}
-              className="h-10 rounded-full border-border bg-paper/70 px-8 text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:text-ink hover:shadow-polaroid active:scale-[0.98] sm:min-w-32"
+              onClick={handlePrevPreview}
+              disabled={!canGoPrev}
+              className={cn(
+                "flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97] sm:h-8 sm:w-8",
+                !canGoPrev &&
+                  "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
+              )}
+              aria-label="Polaroid anterior"
             >
-              Cancelar
-            </Button>
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
+          )}
 
-            <Button
-              type="button"
-              onClick={confirmarRemocaoDraft}
-              className="h-10 rounded-full bg-ink px-8 text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98] sm:min-w-32"
-            >
-              Confirmar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL FINALIZAÇÃO */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="gap-2 rounded-2xl border-border bg-[#f1e7da] shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-md">
-          <DialogHeader className="space-y-0 text-center sm:text-center">
-            <DialogTitle className="font-display text-2xl font-medium text-ink">
-              Suas Polaroids estão prontas
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="mb-2 mt-0">
-            {!carrinhoVazio && (
-              <p className="mb-2 text-center text-xs font-medium text-muted-foreground">
-                Revise suas Polaroids
-              </p>
-            )}
-            {carrinhoVazio ? (
-              <div className="criar-alert-card rounded-2xl border border-dashed border-border bg-paper/55 px-4 py-6 text-center">
-                <p className="text-sm font-medium text-ink">Nenhuma Polaroid selecionada.</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Feche este modal para criar ou adicionar uma nova Polaroid.
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                {showPreviewControls && (
-                  <button
-                    type="button"
-                    onClick={handlePrevPreview}
-                    disabled={!canGoPrev}
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
-                      !canGoPrev &&
-                        "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
-                    )}
-                    aria-label="Polaroid anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                )}
-
-                <div
-                  className={cn(
-                    "overflow-hidden",
-                    showPreviewControls && "relative min-w-0 flex-1 rounded-xl",
-                  )}
-                >
-                  {showPreviewControls && (
-                    <>
-                      <span className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-5 bg-gradient-to-r from-[#f1e7da] to-transparent" />
-                      <span className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-5 bg-gradient-to-l from-[#f1e7da] to-transparent" />
-                    </>
-                  )}
-
-                  <div
-                    className={cn(
-                      "motion-safe:transition-[margin-left,transform,opacity] motion-safe:duration-500 motion-safe:ease-out",
-                      showPreviewControls
-                        ? "flex w-full will-change-[margin-left]"
-                        : "flex justify-center gap-3 overflow-hidden",
-                    )}
-                    style={showPreviewControls ? { marginLeft: `${previewStartIndex * -25}%` } : {}}
-                  >
-                    {saved.map((item, index) => {
-                      const itemPolaroidSize =
-                        polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
-                        polaroidSizes[0];
-
-                      const itemFontStyle = item.fontStyleId
-                        ? fontStyles.find((style) => style.id === item.fontStyleId)
-                        : null;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            "shrink-0 transition-all duration-300 ease-out",
-                            showPreviewControls ? "basis-1/4 px-1" : "w-16 sm:w-20",
-                          )}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => abrirPreviewPolaroid(item.id)}
-                            className="group block w-full cursor-pointer rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-[#f1e7da] focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f1e7da]"
-                            aria-label={`Abrir prévia da Polaroid ${index + 1}`}
-                          >
-                            <div className="polaroid w-full !p-1.5 !pb-2 animate-in fade-in-0 zoom-in-95 duration-300 ease-out transition-[box-shadow,filter] group-hover:brightness-[0.98]">
-                              <span className="absolute left-1.5 top-1.5 z-10 rounded-sm bg-paper/95 px-1 py-0.5 text-[8px] font-semibold leading-none text-ink shadow-soft">
-                                {itemPolaroidSize.label} cm
-                              </span>
-
-                              <div className="aspect-square overflow-hidden bg-muted">
-                                {item.photoLocalUrl && (
-                                  <img
-                                    src={item.photoLocalUrl}
-                                    alt=""
-                                    className="h-full w-full object-cover transition-transform duration-500 ease-out"
-                                    style={{
-                                      objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
-                                      transform: getImageTransform(item),
-                                    }}
-                                  />
-                                )}
-                              </div>
-
-                              <p
-                                className={cn(
-                                  "mt-1 flex min-h-[1.15rem] items-center justify-center overflow-hidden text-center text-[8px] leading-[1.15] text-black",
-                                  itemFontStyle?.fontClass,
-                                )}
-                                title={item.caption}
-                              >
-                                <span className="block max-w-full overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                                  {item.caption}
-                                </span>
-                              </p>
-                            </div>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {showPreviewControls && (
-                  <button
-                    type="button"
-                    onClick={handleNextPreview}
-                    disabled={!canGoNext}
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97]",
-                      !canGoNext &&
-                        "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
-                    )}
-                    aria-label="Próxima Polaroid"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-border/80 bg-paper/60 p-4 shadow-soft transition-all duration-300 ease-out">
-            {carrinhoVazio ? (
-              <div className="criar-alert-card rounded-xl border border-dashed border-border bg-paper/70 p-4 text-center">
-                <p className="text-sm font-medium text-ink">Nenhuma Polaroid selecionada.</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  O botão de pagamento fica indisponível até haver uma Polaroid no carrinho.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="text-muted-foreground">Quantidade</span>
-                  <span className="font-medium text-ink">
-                    {quantidadePolaroids} {quantidadePolaroids === 1 ? "Polaroid" : "Polaroids"}
-                  </span>
-                </div>
-
-                <div className="mt-4 border-t border-border/70 pt-4">
-                  <div className="rounded-2xl border border-border/70 bg-cream/70 p-4 text-center shadow-soft transition-all duration-300 ease-out animate-in fade-in-0 zoom-in-95">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Total do pedido
-                    </p>
-
-                    <p className="mt-1 text-3xl font-bold tracking-tight text-ink">
-                      {totalPedidoFormatado}
-                    </p>
-
-                    <p className="mt-1 text-xs font-medium text-sepia">{mensagemEconomia}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-xl border border-border/70 bg-paper/70 p-3 text-left">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Arquivos liberados
-                  </p>
-                  <ul className="mt-2 space-y-1.5">
-                    <li className="flex items-center gap-2 text-sm text-ink">
-                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      PDF completo para impressão
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-ink">
-                      <FileImage className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      PNG individual de cada Polaroid
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-ink">
-                      <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      Arquivos em alta resolução
-                    </li>
-                  </ul>
-                </div>
-              </>
-            )}
-          </div>
-
-          <Button
-            onClick={iniciarPagamento}
-            disabled={carrinhoVazio || isCheckingOut}
+          <div
             className={cn(
-              "h-12 w-full cursor-pointer rounded-full bg-ink text-base font-medium text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98]",
-              (carrinhoVazio || isCheckingOut) &&
-                "cursor-not-allowed bg-ink/35 text-paper/80 hover:bg-ink/35 hover:shadow-soft active:scale-100",
+              "overflow-hidden",
+              showPreviewControls && "relative min-w-0 flex-1 rounded-xl",
             )}
           >
-            {carrinhoVazio
-              ? "Nenhuma Polaroid para pagar"
-              : isCheckingOut
-                ? "Criando pedido..."
-                : `Pagar ${totalPedidoFormatado} e liberar Polaroids`}
-          </Button>
+            {showPreviewControls && (
+              <>
+                <span className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-5 bg-gradient-to-r from-[#f1e7da] to-transparent" />
+                <span className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-5 bg-gradient-to-l from-[#f1e7da] to-transparent" />
+              </>
+            )}
 
-          {!carrinhoVazio && (
-            <p className="text-center text-xs text-muted-foreground">
-              Pagamento seguro. Seus arquivos são liberados após a confirmação.
-            </p>
-          )}
-
-          {previewPolaroid && (
             <div
-              className="absolute inset-0 z-[60] flex items-center justify-center rounded-2xl bg-black/35 p-3 backdrop-blur-[1px] animate-in fade-in-0 duration-200"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="polaroid-preview-title"
+              className={cn(
+                "motion-safe:transition-[margin-left,transform,opacity] motion-safe:duration-500 motion-safe:ease-out",
+                showPreviewControls
+                  ? "flex w-full will-change-[margin-left]"
+                  : "flex justify-center gap-2 overflow-hidden",
+              )}
+              style={showPreviewControls ? { marginLeft: `${previewStartIndex * -25}%` } : {}}
             >
-              <div
-                key={previewPolaroid.id}
-                className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[26rem] flex-col overflow-hidden rounded-2xl border border-border bg-[#f1e7da] p-4 shadow-polaroid animate-in zoom-in-95 duration-200 sm:p-5"
-              >
-                <button
-                  type="button"
-                  onClick={fecharPreviewPolaroid}
-                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-black text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  aria-label="Fechar prévia"
-                >
-                  <X className="h-4 w-4" strokeWidth={2.25} />
-                </button>
+              {saved.map((item, index) => {
+                const itemPolaroidSize =
+                  polaroidSizes.find((size) => size.id === item.polaroidSizeId) ??
+                  polaroidSizes[0];
 
-                <div className="pr-10 text-center sm:pr-0">
-                  <h3
-                    id="polaroid-preview-title"
-                    className="font-display text-xl font-medium text-ink"
-                  >
-                    Prévia da Polaroid
-                  </h3>
-                </div>
+                const itemFontStyle = item.fontStyleId
+                  ? fontStyles.find((style) => style.id === item.fontStyleId)
+                  : null;
 
-                <div className="mt-4 flex min-h-0 justify-center overflow-auto px-1 py-2">
+                return (
                   <div
-                    className="shrink-0"
-                    style={{
-                      width: `${previewPolaroidSize.widthCm * modalPreviewScale}cm`,
-                      height: `${previewPolaroidSize.heightCm * modalPreviewScale}cm`,
-                    }}
+                    key={item.id}
+                    className={cn(
+                      "shrink-0 transition-all duration-300 ease-out",
+                      showPreviewControls ? "basis-1/4 px-0.5 sm:px-1" : "w-12 sm:w-16",
+                    )}
                   >
-                    <div
-                      className="polaroid box-border max-w-none origin-top-left"
-                      style={{
-                        width: `${previewPolaroidSize.widthCm}cm`,
-                        height: `${previewPolaroidSize.heightCm}cm`,
-                        transform: `scale(${modalPreviewScale})`,
-                      }}
+                    <button
+                      type="button"
+                      onClick={() => abrirPreviewPolaroid(item.id)}
+                      className="group block w-full cursor-pointer rounded-md transition-[box-shadow,filter] duration-200 hover:ring-2 hover:ring-ink/20 hover:ring-offset-2 hover:ring-offset-[#f1e7da] focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f1e7da]"
+                      aria-label={`Abrir prévia da Polaroid ${index + 1}`}
                     >
-                      <div
-                        className={cn(
-                          "relative w-full overflow-hidden bg-muted",
-                          previewTemplate.toneClass,
-                        )}
-                        style={{
-                          height: `${previewPolaroidSize.imageHeightCm}cm`,
-                        }}
-                      >
-                        {previewPolaroid.photoLocalUrl && (
-                          <img
-                            src={previewPolaroid.photoLocalUrl}
-                            alt=""
-                            className="h-full w-full object-cover"
-                            style={{
-                              objectPosition: `${previewPolaroid.imagePosX}% ${previewPolaroid.imagePosY}%`,
-                              transform: getImageTransform(previewPolaroid),
-                            }}
-                          />
-                        )}
-                      </div>
+                      <div className="polaroid w-full !p-1 !pb-1.5 animate-in fade-in-0 zoom-in-95 duration-300 ease-out transition-[box-shadow,filter] group-hover:brightness-[0.98] sm:!p-1.5 sm:!pb-2">
+                        <span className="absolute left-1 top-1 z-10 rounded-sm bg-paper/95 px-0.5 py-0.5 text-[6.5px] font-semibold leading-none text-ink shadow-soft sm:left-1.5 sm:top-1.5 sm:px-1 sm:text-[8px]">
+                          {itemPolaroidSize.label} cm
+                        </span>
 
-                      <p
-                        className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-black leading-tight"
-                        style={{
-                          top: `calc(0.75rem + ${previewPolaroidSize.imageHeightCm}cm)`,
-                        }}
-                      >
-                        <span
-                          className={cn(
-                            "inline-block w-full max-w-full break-words leading-tight",
-                            alignClass[previewPolaroid.align],
-                            previewFontStyle?.fontClass,
-                            fontWeightClass[previewPolaroid.fontWeightId ?? "regular"],
-                            getCaptionSizeClass(
-                              previewPolaroid.polaroidSizeId,
-                              previewPolaroid.size,
-                            ),
+                        <div className="aspect-square overflow-hidden bg-muted">
+                          {item.photoLocalUrl && (
+                            <img
+                              src={item.photoLocalUrl}
+                              alt=""
+                              className="h-full w-full object-cover transition-transform duration-500 ease-out"
+                              style={{
+                                objectPosition: `${item.imagePosX}% ${item.imagePosY}%`,
+                                transform: getImageTransform(item),
+                              }}
+                            />
                           )}
+                        </div>
+
+                        <p
+                          className={cn(
+                            "mt-0.5 flex min-h-[0.8rem] items-center justify-center overflow-hidden text-center text-[6.5px] leading-[1.15] text-black sm:mt-1 sm:min-h-[1.15rem] sm:text-[8px]",
+                            itemFontStyle?.fontClass,
+                          )}
+                          title={item.caption}
                         >
-                          {previewPolaroid.caption || " "}
-                        </span>
-                      </p>
-
-                      <div className="pointer-events-none absolute inset-0 z-20 flex select-none items-center justify-center overflow-hidden">
-                        <span className="-rotate-12 text-5xl font-bold uppercase tracking-[0.28em] text-ink/15 sm:text-6xl">
-                          PRÉVIA
-                        </span>
+                          <span className="block max-w-full overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                            {item.caption}
+                          </span>
+                        </p>
                       </div>
-                    </div>
+                    </button>
                   </div>
-                </div>
-
-                <p className="mt-2 text-center text-sm font-medium text-muted-foreground">
-                  {previewPolaroidSize.label} cm
-                </p>
-
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={removerPolaroidSelecionada}
-                    className="h-10 rounded-full border-border bg-paper/70 text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:text-destructive hover:shadow-polaroid active:scale-[0.98] sm:min-w-44"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Remover do carrinho
-                  </Button>
-                </div>
-              </div>
+                );
+              })}
             </div>
+          </div>
+
+          {showPreviewControls && (
+            <button
+              type="button"
+              onClick={handleNextPreview}
+              disabled={!canGoNext}
+              className={cn(
+                "flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-paper text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:shadow-polaroid active:scale-[0.97] sm:h-8 sm:w-8",
+                !canGoNext &&
+                  "cursor-not-allowed opacity-35 hover:bg-paper hover:shadow-soft active:scale-100",
+              )}
+              aria-label="Próxima Polaroid"
+            >
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
+    </div>
+
+    <div className="rounded-2xl border border-border/80 bg-paper/60 p-3 shadow-soft transition-all duration-300 ease-out sm:p-4">
+      {carrinhoVazio ? (
+        <div className="criar-alert-card rounded-xl border border-dashed border-border bg-paper/70 p-3 text-center sm:p-4">
+          <p className="text-xs font-medium text-ink sm:text-sm">
+            Nenhuma Polaroid selecionada.
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
+            O botão de pagamento fica indisponível até haver uma Polaroid no carrinho.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
+            <span className="text-muted-foreground">Quantidade</span>
+            <span className="font-medium text-ink">
+              {quantidadePolaroids} {quantidadePolaroids === 1 ? "Polaroid" : "Polaroids"}
+            </span>
+          </div>
+
+          <div className="mt-3 border-t border-border/70 pt-3 sm:mt-4 sm:pt-4">
+            <div className="rounded-2xl border border-border/70 bg-cream/70 p-3 text-center shadow-soft transition-all duration-300 ease-out animate-in fade-in-0 zoom-in-95 sm:p-4">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
+                Total do pedido
+              </p>
+
+              <p className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+                {totalPedidoFormatado}
+              </p>
+
+              <p className="mt-1 text-[11px] font-medium leading-tight text-sepia sm:text-xs">
+                {mensagemEconomia}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-xl border border-border/70 bg-paper/70 p-3 text-left sm:mt-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">
+              Arquivos liberados
+            </p>
+
+            <ul className="mt-2 space-y-1">
+              <li className="flex items-center gap-2 text-xs leading-tight text-ink sm:text-sm">
+                <FileText className="h-3 w-3 shrink-0 text-muted-foreground sm:h-3.5 sm:w-3.5" />
+                PDF completo para impressão
+              </li>
+              <li className="flex items-center gap-2 text-xs leading-tight text-ink sm:text-sm">
+                <FileImage className="h-3 w-3 shrink-0 text-muted-foreground sm:h-3.5 sm:w-3.5" />
+                PNG individual de cada Polaroid
+              </li>
+              <li className="flex items-center gap-2 text-xs leading-tight text-ink sm:text-sm">
+                <Layers className="h-3 w-3 shrink-0 text-muted-foreground sm:h-3.5 sm:w-3.5" />
+                Arquivos em alta resolução
+              </li>
+            </ul>
+          </div>
+        </>
+      )}
+    </div>
+
+    <Button
+      onClick={iniciarPagamento}
+      disabled={carrinhoVazio || isCheckingOut}
+      className={cn(
+        "mt-1 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-ink px-4 text-center text-xs font-medium leading-tight text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98] sm:h-12 sm:px-5 sm:text-base",
+        (carrinhoVazio || isCheckingOut) &&
+          "cursor-not-allowed bg-ink/35 text-paper/80 hover:bg-ink/35 hover:shadow-soft active:scale-100",
+      )}
+    >
+      {carrinhoVazio
+        ? "Nenhuma Polaroid para pagar"
+        : isCheckingOut
+          ? "Criando pedido..."
+          : `Pagar ${totalPedidoFormatado} e liberar Polaroids`}
+    </Button>
+
+    {!carrinhoVazio && (
+      <p className="text-center text-[11px] leading-tight text-muted-foreground sm:text-xs">
+        Pagamento seguro. Seus arquivos são liberados após a confirmação.
+      </p>
+    )}
+
+{previewPolaroid && (
+  <div
+    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/35 p-3 backdrop-blur-[1px] animate-in fade-in-0 duration-200"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="polaroid-preview-title"
+  >
+    <div
+      key={previewPolaroid.id}
+      className="relative flex max-h-[calc(100dvh-5rem)] w-[calc(100vw-2rem)] max-w-[20rem] flex-col overflow-hidden rounded-2xl border border-border bg-[#f1e7da] p-3 shadow-polaroid animate-in zoom-in-95 duration-200 sm:max-h-[calc(100vh-2rem)] sm:max-w-[26rem] sm:p-5"
+    >
+      <button
+        type="button"
+        onClick={fecharPreviewPolaroid}
+        className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-transparent bg-black text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 sm:right-3 sm:top-3 sm:h-8 sm:w-8"
+        aria-label="Fechar prévia"
+      >
+        <X className="h-3 w-3 sm:h-4 sm:w-4" strokeWidth={2.25} />
+      </button>
+
+      <div className="px-8 text-center sm:px-10">
+        <h3
+          id="polaroid-preview-title"
+          className="font-display text-lg font-medium leading-tight text-ink sm:text-xl"
+        >
+          Prévia da Polaroid
+        </h3>
+      </div>
+
+      <div className="mt-3 flex min-h-0 flex-1 justify-center overflow-hidden px-1 py-1 [--preview-fit-scale:0.68] sm:mt-4 sm:overflow-auto sm:px-1 sm:py-2 sm:[--preview-fit-scale:1]">
+        <div
+          className="shrink-0"
+          style={{
+            width: `calc(${previewPolaroidSize.widthCm * modalPreviewScale}cm * var(--preview-fit-scale))`,
+            height: `calc(${previewPolaroidSize.heightCm * modalPreviewScale}cm * var(--preview-fit-scale))`,
+          }}
+        >
+          <div
+            className="polaroid box-border max-w-none origin-top-left"
+            style={{
+              width: `${previewPolaroidSize.widthCm}cm`,
+              height: `${previewPolaroidSize.heightCm}cm`,
+              transform: `scale(calc(${modalPreviewScale} * var(--preview-fit-scale)))`,
+              transformOrigin: "top left",
+            }}
+          >
+            <div
+              className={cn(
+                "relative w-full overflow-hidden bg-muted",
+                previewTemplate.toneClass,
+              )}
+              style={{
+                height: `${previewPolaroidSize.imageHeightCm}cm`,
+              }}
+            >
+              {previewPolaroid.photoLocalUrl && (
+                <img
+                  src={previewPolaroid.photoLocalUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  style={{
+                    objectPosition: `${previewPolaroid.imagePosX}% ${previewPolaroid.imagePosY}%`,
+                    transform: getImageTransform(previewPolaroid),
+                  }}
+                />
+              )}
+            </div>
+
+            <p
+              className="absolute bottom-0 left-3 right-3 flex items-center justify-center overflow-hidden px-2 text-black leading-tight"
+              style={{
+                top: `calc(0.75rem + ${previewPolaroidSize.imageHeightCm}cm)`,
+              }}
+            >
+              <span
+                className={cn(
+                  "inline-block w-full max-w-full break-words leading-tight",
+                  alignClass[previewPolaroid.align],
+                  previewFontStyle?.fontClass,
+                  fontWeightClass[previewPolaroid.fontWeightId ?? "regular"],
+                  getCaptionSizeClass(
+                    previewPolaroid.polaroidSizeId,
+                    previewPolaroid.size,
+                  ),
+                )}
+              >
+                {previewPolaroid.caption || " "}
+              </span>
+            </p>
+
+            <div className="pointer-events-none absolute inset-0 z-20 flex select-none items-center justify-center overflow-hidden">
+              <span className="-rotate-12 text-4xl font-bold uppercase tracking-[0.28em] text-ink/15 sm:text-6xl">
+                PRÉVIA
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-2 text-center text-xs font-medium text-muted-foreground sm:text-sm">
+        {previewPolaroidSize.label} cm
+      </p>
+
+      <div className="mt-3 flex justify-center sm:mt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={removerPolaroidSelecionada}
+          className="h-9 rounded-full border-border bg-paper/70 px-4 text-xs text-ink shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cream hover:text-destructive hover:shadow-polaroid active:scale-[0.98] sm:h-10 sm:min-w-44 sm:text-sm"
+        >
+          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          Remover do carrinho
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+  </DialogContent>
+</Dialog>
     </div>
   );
 }

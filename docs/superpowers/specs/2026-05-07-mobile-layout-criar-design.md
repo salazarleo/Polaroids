@@ -93,7 +93,7 @@ Visíveis apenas quando `draft.photoLocalUrl` existe e `!isAdjustingImage`. Colu
 
 Estilo de cada botão: `flex flex-col items-center gap-1`, botão `h-10 w-10 rounded-xl border border-border shadow-soft`, ícone `h-4 w-4`, label `text-[9px] font-medium text-muted-foreground`.
 
-O bloco horizontal de 7 botões existente no mobile (`criar-fade-up ... flex justify-center gap-2`) é **removido apenas no mobile** — o desktop não é afetado pois esse bloco não tem `lg:hidden` (está dentro de uma section que já é mobile-only). Verificar e garantir que o bloco de botões horizontais só seja removido do contexto mobile.
+O bloco de 7 botões existente (`criar-fade-up ... flex justify-center gap-2`) não tem `lg:hidden` — aparece atualmente em mobile **e** desktop. Para removê-lo apenas do mobile, adicionar `hidden lg:flex` ao elemento `<div className="criar-fade-up ...">` que envolve os botões. Assim ele continua visível no desktop e some no mobile, onde é substituído pela barra inferior e pelos botões laterais.
 
 ---
 

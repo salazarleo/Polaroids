@@ -135,11 +135,16 @@ export const createCheckout = createServerFn({ method: "POST" })
       .update({ mp_preference_id: preference.id })
       .eq("id", order.id);
 
-    const isSandbox =
-      getFirstServerEnv("MP_SANDBOX", "VITE_MP_SANDBOX") !== "false";
-    const checkoutUrl = isSandbox
-      ? preference.sandbox_init_point
-      : preference.init_point;
+const isSandbox =
+  getFirstServerEnv("MP_SANDBOX", "VITE_MP_SANDBOX") === "true";
+
+const checkoutUrl = isSandbox
+  ? preference.sandbox_init_point
+  : preference.init_point;
+
+if (!checkoutUrl) {
+  throw new Error("URL de checkout do Mercado Pago não retornada");
+}
 
     return {
       orderId: order.id as string,

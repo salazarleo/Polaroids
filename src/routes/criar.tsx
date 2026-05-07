@@ -1298,9 +1298,28 @@ function CriarPage() {
           <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0 max-lg:flex max-lg:flex-col max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
             <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft max-lg:flex-1 max-lg:min-h-0 max-lg:items-stretch">
               <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:gap-0">
-                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:grid max-lg:grid-cols-[1fr_auto_1fr] max-lg:items-center max-lg:gap-1 max-lg:flex-1">
-                  {/* Mobile phantom col: mirrors button column width to center the Polaroid */}
-                  <div className="lg:hidden" aria-hidden="true" />
+                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:grid max-lg:grid-cols-[2.5rem_1fr_4rem] max-lg:items-center max-lg:gap-2 max-lg:flex-1">
+                  {/* Mobile: col 1 = medida de altura */}
+                  <div
+                    className={cn(
+                      "lg:hidden flex items-center justify-center transition-opacity duration-200",
+                      isAdjustingImage ? "opacity-20 blur-[1px]" : "opacity-100",
+                    )}
+                  >
+                    <div
+                      className="relative w-5"
+                      style={{
+                        height: `${selectedPolaroidSize.previewMeasureHeightCm * selectedPolaroidSize.previewScale}cm`,
+                      }}
+                    >
+                      <span className="absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-muted-foreground/55" />
+                      <span className="absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
+                      <span className="absolute bottom-0 left-1/2 h-px w-3 -translate-x-1/2 bg-muted-foreground/55" />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180 whitespace-nowrap bg-cream px-1 py-1 text-[11px] font-medium text-muted-foreground [writing-mode:vertical-rl]">
+                        {selectedPolaroidSize.heightCm} cm
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex min-h-0 flex-1 items-center justify-center">
                     <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible">
                       <div
@@ -1316,7 +1335,7 @@ function CriarPage() {
                         {/* MEDIDA VERTICAL */}
                         <div
                           className={cn(
-                            "absolute flex w-5 items-center justify-center transition-opacity duration-200",
+                            "absolute flex w-5 items-center justify-center transition-opacity duration-200 max-lg:hidden",
                             isAdjustingImage ? "opacity-20 blur-[1px]" : "opacity-100",
                           )}
                           style={{
@@ -1548,7 +1567,7 @@ function CriarPage() {
 
                   {/* Mobile side buttons (col 3): Trocar, Remover, Salvar */}
                   <div
-                    className="lg:hidden flex flex-col items-center gap-3 px-1"
+                    className="lg:hidden flex flex-col items-center justify-center self-stretch gap-3 px-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {draft.photoLocalUrl && !isAdjustingImage && (
@@ -1599,14 +1618,10 @@ function CriarPage() {
                   </div>
                 </div>
 
-                {/* MOBILE: Card "Minhas Polaroids" colapsável */}
+                {/* MOBILE: Card "Minhas Polaroids" sempre aberto */}
                 <div className="lg:hidden mt-2 shrink-0 mx-0 rounded-2xl border border-border bg-paper shadow-soft">
-                  {/* Cabeçalho sempre visível */}
-                  <button
-                    type="button"
-                    onClick={() => setMobileSavedOpen((v) => !v)}
-                    className="criar-control flex w-full items-center justify-between px-4 py-3"
-                  >
+                  {/* Cabeçalho */}
+                  <div className="flex items-center px-4 py-3">
                     <div className="flex flex-col items-start gap-0.5">
                       <span className="font-display text-base font-medium text-ink">
                         Minhas Polaroids
@@ -1618,28 +1633,21 @@ function CriarPage() {
                         </span>
                       )}
                     </div>
-                    <ChevronDown
-                      className={cn(
-                        "h-5 w-5 text-muted-foreground transition-transform duration-200",
-                        mobileSavedOpen && "rotate-180",
-                      )}
-                    />
-                  </button>
+                  </div>
 
-                  {/* Área interna (visível apenas quando aberta) */}
-                  {mobileSavedOpen && (
-                    <div className="border-t border-border">
-                      {saved.length === 0 ? (
-                        <div className="mx-3 mb-3 mt-2 rounded-xl border border-dashed border-border p-4 text-center">
-                          <p className="text-sm text-muted-foreground">
-                            Nenhuma Polaroid criada ainda.
-                          </p>
-                        </div>
-                      ) : (
-                        <div
-                          className="flex flex-row gap-3 overflow-x-auto px-3 pb-3 pt-2"
-                          style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
-                        >
+                  {/* Conteúdo sempre visível */}
+                  <div className="border-t border-border">
+                    {saved.length === 0 ? (
+                      <div className="mx-3 mb-3 mt-2 rounded-xl border border-dashed border-border p-4 text-center">
+                        <p className="text-sm text-muted-foreground">
+                          Nenhuma Polaroid criada ainda.
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        className="flex flex-row gap-3 overflow-x-auto px-3 pb-3 pt-2"
+                        style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }}
+                      >
                           {saved.map((item) => {
                             const it = templates.find((t) => t.id === item.templateId)!;
                             const itemFontStyle = item.fontStyleId
@@ -1750,7 +1758,6 @@ function CriarPage() {
                         </div>
                       )}
                     </div>
-                  )}
                 </div>
 
                 {draft.photoLocalUrl && !isAdjustingImage && (

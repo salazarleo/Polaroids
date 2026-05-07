@@ -2071,6 +2071,162 @@ function CriarPage() {
         <div className="lg:hidden shrink-0" style={{ height: "calc(68px + env(safe-area-inset-bottom))" }} />
       </main>
 
+      {/* MOBILE: Barra inferior fixa */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-paper/95 backdrop-blur-sm shadow-[0_-1px_12px_rgba(60,45,30,0.08)]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-center justify-around px-2 pb-1 pt-2">
+          {/* Texto */}
+          <button
+            type="button"
+            onClick={() => setMobileCaptionEditing(true)}
+            className={cn(
+              "criar-control flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-all active:scale-95",
+              !draft.photoLocalUrl && "pointer-events-none opacity-40",
+            )}
+            aria-label="Editar texto"
+          >
+            <Type className="h-5 w-5 text-ink" />
+            <span className="text-[10px] font-medium leading-none text-muted-foreground">
+              Texto
+            </span>
+          </button>
+
+          {/* Fonte */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMobileFontPanelOpen((v) => !v);
+              setMobileSizePanelOpen(false);
+            }}
+            className={cn(
+              "criar-control flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-all active:scale-95",
+              mobileFontPanelOpen && "bg-ink/5",
+              !draft.photoLocalUrl && "pointer-events-none opacity-40",
+            )}
+            aria-label="Escolher fonte"
+          >
+            <FileText className="h-5 w-5 text-ink" />
+            <span className="text-[10px] font-medium leading-none text-muted-foreground">
+              Fonte
+            </span>
+          </button>
+
+          {/* Tamanho do texto */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMobileSizePanelOpen((v) => !v);
+              setMobileFontPanelOpen(false);
+            }}
+            className={cn(
+              "criar-control flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-all active:scale-95",
+              mobileSizePanelOpen && "bg-ink/5",
+              !draft.photoLocalUrl && "pointer-events-none opacity-40",
+            )}
+            aria-label="Tamanho do texto"
+          >
+            <Layers className="h-5 w-5 text-ink" />
+            <span className="text-[10px] font-medium leading-none text-muted-foreground">
+              Tamanho
+            </span>
+          </button>
+
+          {/* Alinhar */}
+          <button
+            type="button"
+            onClick={() =>
+              setDraft((d) => ({ ...d, align: nextAlign[d.align] }))
+            }
+            className={cn(
+              "criar-control flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-all active:scale-95",
+              !draft.photoLocalUrl && "pointer-events-none opacity-40",
+            )}
+            aria-label="Alinhar texto"
+          >
+            {draft.align === "left" ? (
+              <AlignLeft className="h-5 w-5 text-ink" />
+            ) : draft.align === "center" ? (
+              <AlignJustify className="h-5 w-5 text-ink" />
+            ) : draft.align === "right" ? (
+              <AlignRight className="h-5 w-5 text-ink" />
+            ) : (
+              <AlignCenter className="h-5 w-5 text-ink" />
+            )}
+            <span className="text-[10px] font-medium leading-none text-muted-foreground">
+              Alinhar
+            </span>
+          </button>
+
+          {/* Inverter */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setFlipMenuOpen((v) => !v);
+              }}
+              className={cn(
+                "criar-control flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-all active:scale-95",
+                !draft.photoLocalUrl && "pointer-events-none opacity-40",
+              )}
+              aria-label="Inverter imagem"
+            >
+              <FlipHorizontal2 className="h-5 w-5 text-ink" />
+              <span className="text-[10px] font-medium leading-none text-muted-foreground">
+                Inverter
+              </span>
+            </button>
+            {flipMenuOpen && (
+              <div className="absolute bottom-full left-1/2 z-[101] mb-2 w-48 -translate-x-1/2 overflow-hidden rounded-xl border border-[#2a2f3a] bg-[#1a1c23] shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft((d) => ({ ...d, flipHorizontal: !d.flipHorizontal }));
+                    setFlipMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-[#2a2f3a]"
+                >
+                  <FlipHorizontal2 className="h-3.5 w-3.5 shrink-0" />
+                  Inverter horizontalmente
+                </button>
+                <div className="h-px bg-[#2a2f3a]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft((d) => ({ ...d, flipVertical: !d.flipVertical }));
+                    setFlipMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-[#2a2f3a]"
+                >
+                  <FlipVertical2 className="h-3.5 w-3.5 shrink-0" />
+                  Inverter verticalmente
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Posição */}
+          <button
+            type="button"
+            onClick={() => setIsAdjustingImage(true)}
+            className={cn(
+              "criar-control flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 transition-all active:scale-95",
+              !draft.photoLocalUrl && "pointer-events-none opacity-40",
+            )}
+            aria-label="Ajustar posição"
+          >
+            <Pencil className="h-5 w-5 text-ink" />
+            <span className="text-[10px] font-medium leading-none text-muted-foreground">
+              Posição
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* MODAL CONFIRMAÇÃO REMOÇÃO */}
       <Dialog
         open={draftIdPendenteRemocao !== null}

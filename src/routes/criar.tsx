@@ -569,6 +569,49 @@ function CriarPage() {
     };
   }, [flipMenuOpen]);
 
+  useEffect(() => {
+    if (!mobileSizeDropdownOpen) return;
+    const close = () => setMobileSizeDropdownOpen(false);
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("click", close, { once: true });
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+      document.removeEventListener("click", close);
+    };
+  }, [mobileSizeDropdownOpen]);
+
+  useEffect(() => {
+    if (!mobileFontPanelOpen) return;
+    const close = () => setMobileFontPanelOpen(false);
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("click", close, { once: true });
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+      document.removeEventListener("click", close);
+    };
+  }, [mobileFontPanelOpen]);
+
+  useEffect(() => {
+    if (!mobileSizePanelOpen) return;
+    const close = () => setMobileSizePanelOpen(false);
+    const timerId = window.setTimeout(() => {
+      document.addEventListener("click", close, { once: true });
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+      document.removeEventListener("click", close);
+    };
+  }, [mobileSizePanelOpen]);
+
+  useEffect(() => {
+    if (prevSavedLengthRef.current === 0 && saved.length === 1) {
+      setMobileSavedOpen(true);
+    }
+    prevSavedLengthRef.current = saved.length;
+  }, [saved.length]);
+
   function pickFile() {
     fileRef.current?.click();
   }

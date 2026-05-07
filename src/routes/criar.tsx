@@ -992,6 +992,64 @@ function CriarPage() {
         </div>
       )}
 
+      {/* MOBILE: Barra superior fixa */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-[45] flex h-[52px] items-center justify-between border-b border-border bg-paper/95 px-4 shadow-soft backdrop-blur-sm">
+        {/* Dropdown de tamanho da Polaroid */}
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSizeDropdownOpen((v) => !v);
+              setMobileFontPanelOpen(false);
+              setMobileSizePanelOpen(false);
+            }}
+            className="criar-control flex items-center gap-1.5 rounded-xl border border-border bg-paper px-3 py-1.5 text-sm font-medium text-ink shadow-soft"
+          >
+            Polaroid {selectedPolaroidSize.label}
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                mobileSizeDropdownOpen && "rotate-180",
+              )}
+            />
+          </button>
+
+          {mobileSizeDropdownOpen && (
+            <div
+              className="absolute left-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-border bg-paper shadow-polaroid"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {polaroidSizes.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setDraft((d) => ({ ...d, polaroidSizeId: item.id }));
+                    setMobileSizeDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center px-4 py-2.5 text-left text-sm transition-colors",
+                    draft.polaroidSizeId === item.id
+                      ? "bg-ink/5 font-semibold text-ink"
+                      : "text-muted-foreground hover:bg-cream",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Botão Finalizar */}
+        <Button
+          onClick={finalizarPedido}
+          className="h-9 cursor-pointer rounded-md border border-transparent bg-black px-4 text-sm font-medium text-white shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink hover:shadow-polaroid active:scale-[0.97]"
+        >
+          Finalizar
+        </Button>
+      </div>
+
       <main className="mx-auto max-w-7xl px-3 py-3 sm:px-6 sm:py-4 lg:h-full lg:min-h-0 lg:overflow-hidden max-lg:p-0 max-lg:max-w-none max-lg:h-full max-lg:flex max-lg:flex-col max-lg:overflow-hidden">
         <section className="leather-card criar-fade-up criar-delay-1 criar-panel-motion mx-auto mb-3 p-2 lg:max-w-6xl lg:shrink-0 lg:px-4 lg:py-2.5 max-lg:hidden">
           {/* MOBILE - BARRA DE PERSONALIZAR */}

@@ -1298,7 +1298,9 @@ function CriarPage() {
           <section className="criar-fade-up criar-delay-3 order-2 lg:order-2 lg:h-full lg:min-h-0 max-lg:flex max-lg:flex-col max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
             <div className="leather-card criar-plain-card criar-panel-motion flex h-full min-h-0 flex-col items-center justify-center border-0 bg-transparent p-0 shadow-none lg:border lg:bg-paper lg:p-3 lg:shadow-soft max-lg:flex-1 max-lg:min-h-0 max-lg:items-stretch">
               <div className="flex h-full w-full max-w-lg flex-col gap-2 lg:gap-3 max-lg:max-w-none max-lg:flex-1 max-lg:min-h-0 max-lg:gap-0">
-                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3">
+                <div className="relative flex min-h-0 flex-1 flex-col border-0 bg-transparent p-0 lg:rounded-2xl lg:border lg:border-border/70 lg:bg-[#f5ece0] lg:p-3 max-lg:grid max-lg:grid-cols-[1fr_auto_1fr] max-lg:items-center max-lg:gap-1 max-lg:flex-none max-lg:flex-1">
+                  {/* Mobile phantom col: mirrors button column width to center the Polaroid */}
+                  <div className="lg:hidden" aria-hidden="true" />
                   <div className="flex min-h-0 flex-1 items-center justify-center">
                     <div className="relative mx-auto h-[11.35cm] w-full max-w-[10cm] overflow-visible">
                       <div
@@ -1543,10 +1545,62 @@ function CriarPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Mobile side buttons (col 3): Trocar, Remover, Salvar */}
+                  <div
+                    className="lg:hidden flex flex-col items-center gap-3 px-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {draft.photoLocalUrl && !isAdjustingImage && (
+                      <>
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={pickFile}
+                            className="criar-control flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-paper shadow-soft transition-all active:scale-95"
+                            aria-label="Trocar foto"
+                          >
+                            <Upload className="h-4 w-4 text-ink" />
+                          </button>
+                          <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                            Trocar
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={removerDraftAtual}
+                            className="criar-control flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-paper shadow-soft transition-all active:scale-95"
+                            aria-label="Remover foto"
+                          >
+                            <Trash2 className="h-4 w-4 text-ink" />
+                          </button>
+                          <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                            Remover
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={concluir}
+                            className="criar-control flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white shadow-soft transition-all active:scale-95"
+                            aria-label="Salvar Polaroid"
+                          >
+                            <Save className="h-4 w-4 text-ink" />
+                          </button>
+                          <span className="text-[9px] font-medium leading-none text-muted-foreground">
+                            Salvar
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {draft.photoLocalUrl && !isAdjustingImage && (
-                  <div className="criar-fade-up relative z-20 flex shrink-0 flex-col items-center gap-2">
+                  <div className="criar-fade-up relative z-20 hidden lg:flex shrink-0 flex-col items-center gap-2">
                     <div className="flex justify-center gap-2">
                       <div className="flex w-10 flex-col items-center gap-1">
                         <button

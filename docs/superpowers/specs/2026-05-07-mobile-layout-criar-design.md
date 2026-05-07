@@ -73,13 +73,13 @@ No mobile, a `<main>` não usa `px-3 py-3 sm:px-6 sm:py-4` — o padding é geri
 
 Grid de 3 colunas: `grid grid-cols-[1fr_auto_1fr] items-center gap-2`
 
-- **Coluna esquerda (1fr):** invisível, mesma largura da coluna direita — serve para centralizar a Polaroid opticamente
-- **Coluna central (auto):** a Polaroid com as medidas existentes
-- **Coluna direita (auto):** os 3 botões laterais
+- **Coluna esquerda (1fr):** invisível — serve como contrapeso para centralizar a Polaroid opticamente
+- **Coluna central (auto):** a Polaroid com as medidas existentes, centralizada no espaço disponível
+- **Coluna direita (1fr):** contém o grupo de botões alinhado à esquerda/centro dentro da sua coluna
 
 A Polaroid mantém exatamente a mesma estrutura atual (`previewScale`, `previewWidthCm`, `previewHeightCm`, medidas em cm, drag handlers, caption, upload placeholder, overlay de uploading). Não alterar nenhuma dimensão ou lógica interna.
 
-O container externo da Polaroid recebe `max-h-[calc(100dvh-52px-68px-56px)] overflow-hidden` para não ultrapassar o espaço disponível (onde 56px é a altura mínima do card "Minhas Polaroids" fechado).
+O container da área central usa `flex-1 min-h-0 overflow-hidden` para se adaptar ao espaço disponível entre as barras fixas e o card "Minhas Polaroids", sem depender de `calc` fixo. A sub-área da Polaroid também recebe `flex-1 min-h-0 overflow-hidden`.
 
 ### Botões laterais (coluna direita)
 
@@ -181,7 +181,7 @@ Controle preciso: comparar `prevLength` com `saved.length` via `useRef` para abr
 
 ## Checklist de validação final
 
-- [ ] Desktop continua exatamente igual (sem nenhuma classe `lg:` tocada)
+- [ ] Desktop continua visualmente e funcionalmente igual, sem alteração de layout ou comportamento
 - [ ] Mobile tem barra superior fixa com dropdown de tamanho e botão Finalizar
 - [ ] Mobile tem barra inferior fixa com 6 botões
 - [ ] Polaroid está grande, centralizada opticamente com grid 3 colunas

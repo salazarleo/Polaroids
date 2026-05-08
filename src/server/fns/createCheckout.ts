@@ -20,6 +20,7 @@ const CheckoutItemSchema = z.object({
 
 const Input = z.object({
   items: z.array(CheckoutItemSchema).min(1).max(20),
+  customerEmail: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
 });
 
 function getSiteUrl() {
@@ -46,7 +47,12 @@ export const createCheckout = createServerFn({ method: "POST" })
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .insert({ status: "pending", quantity, total_centavos: totalCentavos })
+      .insert({
+        status: "pending",
+        quantity,
+        total_centavos: totalCentavos,
+        customer_email: data.customerEmail,
+      })
       .select("id")
       .single();
 
@@ -130,26 +136,37 @@ export const createCheckout = createServerFn({ method: "POST" })
       throw new Error("Não foi possível iniciar o pagamento. Tente novamente.");
     }
 
-    await supabase
+    const orderUrl = `${siteUrl}/pedido/${order.id}`;
+
+    const { error: orderUpdateError } = await supabase
       .from("orders")
-      .update({ mp_preference_id: preference.id })
+      .update({
+        mp_preference_id: preference.id,
+        order_url: orderUrl,
+      })
       .eq("id", order.id);
 
-const isSandbox =
-  getFirstServerEnv("MP_SANDBOX", "VITE_MP_SANDBOX") === "true";
+    if (orderUpdateError) {
+      console.error("[create-checkout] Erro ao atualizar pedido", orderUpdateError);
+      throw new Error("Não foi possível atualizar o pedido");
+    }
 
-const checkoutUrl = isSandbox
-  ? preference.sandbox_init_point
-  : preference.init_point;
+    const isSandbox =
+      getFirstServerEnv("MP_SANDBOX", "VITE_MP_SANDBOX") === "true";
 
-if (!checkoutUrl) {
-  throw new Error("URL de checkout do Mercado Pago não retornada");
-}
+    const checkoutUrl = isSandbox
+      ? preference.sandbox_init_point
+      : preference.init_point;
+
+    if (!checkoutUrl) {
+      throw new Error("URL de checkout do Mercado Pago não retornada");
+    }
 
     return {
       orderId: order.id as string,
       preferenceId: preference.id,
       totalCentavos,
       checkoutUrl,
+      orderUrl,
     };
   });

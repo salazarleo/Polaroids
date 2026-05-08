@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import {
   Upload,
@@ -67,6 +68,7 @@ export const Route = createFileRoute("/criar")({
 type TemplateId = "amor" | "viagem" | "familia" | "carta" | "minimalista" | "album";
 type Size = "sm" | "md" | "lg";
 type Align = "default" | "left" | "center" | "right";
+type CheckoutStep = "review" | "email";
 type PolaroidSizeId = "7x10" | "5x8" | "4x5";
 type FontWeightId = "regular";
 
@@ -148,6 +150,7 @@ interface PolaroidSizeDef {
 const DEFAULT_CAPTION_SIZE: Size = "md";
 const PREVIEW_VISIBLE_COUNT = 4;
 const MAX_POLAROIDS = 20;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type UploadStatus = "idle" | "uploading" | "done" | "error";
 
@@ -617,6 +620,10 @@ function getUploadErrorMessage(error: unknown) {
   return "Erro desconhecido";
 }
 
+function isValidEmail(email: string) {
+  return EMAIL_REGEX.test(email.trim());
+}
+
 function newDraft(
   templateId: TemplateId = "amor",
   polaroidSizeId: PolaroidSizeId = "7x10",
@@ -701,6 +708,9 @@ function CriarPage() {
   const [previewStartIndex, setPreviewStartIndex] = useState(0);
   const [previewPolaroidId, setPreviewPolaroidId] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("review");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerEmailError, setCustomerEmailError] = useState(false);
   const [flipMenuOpen, setFlipMenuOpen] = useState(false);
   const [mobileSizeDropdownOpen, setMobileSizeDropdownOpen] = useState(false);
   const [mobileFontPanelOpen, setMobileFontPanelOpen] = useState(false);
@@ -989,7 +999,18 @@ function CriarPage() {
       return;
     }
 
+    setCheckoutStep("review");
+    setCustomerEmailError(false);
     setOpen(true);
+  }
+
+  function handleCheckoutModalOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (!nextOpen) {
+      setCheckoutStep("review");
+      setCustomerEmailError(false);
+    }
   }
 
   function handlePrevPreview() {
@@ -1010,9 +1031,34 @@ function CriarPage() {
     setPreviewPolaroidId(null);
   }
 
+  function handleCustomerEmailChange(value: string) {
+    setCustomerEmail(value);
+
+    if (customerEmailError && isValidEmail(value)) {
+      setCustomerEmailError(false);
+    }
+  }
+
+  function avancarParaEmail() {
+    setCheckoutStep("email");
+    setCustomerEmailError(false);
+  }
+
+  function voltarParaRevisao() {
+    setCheckoutStep("review");
+    setCustomerEmailError(false);
+  }
+
   async function iniciarPagamento() {
     if (saved.length === 0) {
       setStyleWarning("Adicione pelo menos uma Polaroid");
+      return;
+    }
+
+    const normalizedCustomerEmail = customerEmail.trim().toLowerCase();
+
+    if (!isValidEmail(normalizedCustomerEmail)) {
+      setCustomerEmailError(true);
       return;
     }
 
@@ -1022,6 +1068,7 @@ function CriarPage() {
       return;
     }
 
+    setCustomerEmailError(false);
     setIsCheckingOut(true);
 
     try {
@@ -1038,7 +1085,16 @@ function CriarPage() {
         imagePosY: x.imagePosY,
       }));
 
-      const result = await createCheckout({ data: { items } });
+      const result = await createCheckout({
+        data: { items, customerEmail: normalizedCustomerEmail },
+      });
+
+      try {
+        window.localStorage.setItem("lastOrderId", result.orderId);
+        window.localStorage.setItem("lastOrderEmail", normalizedCustomerEmail);
+      } catch (storageError) {
+        console.warn("[checkout] Não foi possível salvar o pedido no localStorage", storageError);
+      }
 
       window.location.href = result.checkoutUrl;
     } catch (err) {
@@ -2614,14 +2670,26 @@ function CriarPage() {
       {/* MODAL CONFIRMAÇÃO REMOÇÃO */}
 {/* MODAL FINALIZAÇÃO */}
 {/* MODAL FINALIZAÇÃO */}
-<Dialog open={open} onOpenChange={setOpen}>
+<Dialog open={open} onOpenChange={handleCheckoutModalOpenChange}>
   <DialogContent className="z-[100] flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1.25rem)] max-w-[21rem] flex-col gap-2 overflow-y-auto rounded-2xl border-border bg-[#f1e7da] p-3 shadow-polaroid duration-300 ease-out data-[state=open]:slide-in-from-bottom-4 sm:max-w-[24rem] sm:p-4 [&>button:last-child]:right-2 [&>button:last-child]:top-2 [&>button:last-child]:h-6 [&>button:last-child]:w-6 [&>button:last-child]:rounded-full [&>button:last-child]:border-0 [&>button:last-child]:bg-black [&>button:last-child]:p-0 [&>button:last-child]:opacity-100 [&>button:last-child]:shadow-soft [&>button:last-child]:transition-all [&>button:last-child]:duration-200 hover:[&>button:last-child]:bg-black/90 [&>button:last-child>svg]:h-3 [&>button:last-child>svg]:w-3 [&>button:last-child>svg]:text-white sm:[&>button:last-child]:right-3 sm:[&>button:last-child]:top-3 sm:[&>button:last-child]:h-6 sm:[&>button:last-child]:w-6 sm:[&>button:last-child>svg]:h-3 sm:[&>button:last-child>svg]:w-3">
-    <DialogHeader className="space-y-0 px-8 text-center sm:px-4">
+    <DialogHeader
+      className={cn(
+        "px-8 text-center sm:px-4",
+        checkoutStep === "email" ? "space-y-1" : "space-y-0",
+      )}
+    >
       <DialogTitle className="w-full text-center font-display text-xl font-medium leading-tight text-ink sm:whitespace-nowrap sm:text-2xl">
-        Suas Polaroids estão prontas
+        {checkoutStep === "email" ? "Finalize seu pedido" : "Suas Polaroids estão prontas"}
       </DialogTitle>
+      {checkoutStep === "email" && (
+        <DialogDescription className="text-center text-[11px] leading-snug text-muted-foreground sm:text-xs">
+          Informe seu e-mail para receber suas Polaroids assim que o pagamento for confirmado.
+        </DialogDescription>
+      )}
     </DialogHeader>
 
+    {checkoutStep === "review" ? (
+      <>
     <div className="mb-1 mt-0">
       {!carrinhoVazio && (
         <p className="mb-2 text-center text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">
@@ -2818,7 +2886,7 @@ function CriarPage() {
     </div>
 
     <Button
-      onClick={iniciarPagamento}
+      onClick={avancarParaEmail}
       disabled={carrinhoVazio || isCheckingOut}
       className={cn(
         "mt-1 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-ink px-4 text-center text-xs font-medium leading-tight text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98] sm:h-12 sm:px-5 sm:text-base",
@@ -2832,11 +2900,86 @@ function CriarPage() {
           ? "Criando pedido..."
           : `Pagar ${totalPedidoFormatado} e liberar Polaroids`}
     </Button>
+      </>
+    ) : (
+      <div className="space-y-3 py-1">
+        <div className="rounded-2xl border border-border/80 bg-paper/60 p-3 shadow-soft sm:p-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
+              <span className="text-muted-foreground">Quantidade</span>
+              <span className="font-medium text-ink">
+                {quantidadePolaroids} {quantidadePolaroids === 1 ? "Polaroid" : "Polaroids"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-2 text-xs sm:text-sm">
+              <span className="text-muted-foreground">Total</span>
+              <span className="font-medium text-ink">{totalPedidoFormatado}</span>
+            </div>
+            {/* <div className="flex items-start justify-between gap-3 border-t border-border/70 pt-2 text-xs sm:text-sm">
+              <span className="text-muted-foreground">Entrega</span>
+              <span className="max-w-40 text-right font-medium leading-snug text-ink">
+                Link por e-mail após confirmação do pagamento
+              </span>
+            </div> */}
+          </div>
+        </div>
 
-    {!carrinhoVazio && (
-      <p className="text-center text-[11px] leading-tight text-muted-foreground sm:text-xs">
-        Pagamento seguro. Seus arquivos são liberados após a confirmação.
-      </p>
+        <div className="space-y-1.5">
+          <Label htmlFor="checkout-email" className="text-xs font-medium text-ink sm:text-sm">
+            E-mail
+          </Label>
+          <Input
+            id="checkout-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required
+            value={customerEmail}
+            onChange={(event) => handleCustomerEmailChange(event.target.value)}
+            placeholder="seuemail@exemplo.com"
+            aria-invalid={customerEmailError}
+            aria-describedby={
+              customerEmailError ? "checkout-email-help checkout-email-error" : "checkout-email-help"
+            }
+            className={cn(
+              "h-10 rounded-xl border-border bg-paper/70 text-sm text-ink shadow-soft placeholder:text-muted-foreground focus-visible:ring-ink/30",
+              customerEmailError && "border-destructive focus-visible:ring-destructive/30",
+            )}
+          />
+          <p id="checkout-email-help" className="text-[11px] leading-tight text-muted-foreground sm:text-xs">
+            Assim você não perde suas Polaroids mesmo se fechar a tela do pagamento.
+          </p>
+          {customerEmailError && (
+            <p id="checkout-email-error" className="text-[11px] font-medium leading-tight text-destructive sm:text-xs">
+              Informe um e-mail válido para continuar.
+            </p>
+          )}
+        </div>
+
+        <Button
+          onClick={iniciarPagamento}
+          disabled={isCheckingOut}
+          className={cn(
+            "flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-ink px-4 text-center text-xs font-medium leading-tight text-paper shadow-soft transition-[background-color,box-shadow,transform,border-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-ink/90 hover:shadow-polaroid active:scale-[0.98] sm:h-12 sm:px-5 sm:text-base",
+            isCheckingOut &&
+              "cursor-not-allowed bg-ink/35 text-paper/80 hover:bg-ink/35 hover:shadow-soft active:scale-100",
+          )}
+        >
+          {isCheckingOut ? "Criando pedido..." : "Continuar para pagamento"}
+        </Button>
+
+        <button
+          type="button"
+          onClick={voltarParaRevisao}
+          disabled={isCheckingOut}
+          className={cn(
+            "mx-auto flex cursor-pointer items-center justify-center px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-ink sm:text-sm",
+            isCheckingOut && "cursor-not-allowed opacity-50 hover:text-muted-foreground",
+          )}
+        >
+          Voltar
+        </button>
+      </div>
     )}
 
 {previewPolaroid && (

@@ -6,6 +6,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const FINAL_BUCKET = "final-files";
 const PT_PER_CM = 72 / 2.54;
 
+type SupabaseAny = any;
+
 const POLAROID_PRINT_SIZES_CM: Record<
   string,
   { widthCm: number; heightCm: number }
@@ -22,6 +24,86 @@ function cmToPt(cm: number): number {
 function getPrintSizeCm(polaroidSizeId: string) {
   return (
     POLAROID_PRINT_SIZES_CM[polaroidSizeId] ?? POLAROID_PRINT_SIZES_CM["7x10"]
+  );
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function runInBackground(task: Promise<unknown>) {
+  const runtime = globalThis as {
+    EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void };
+  };
+
+  if (runtime.EdgeRuntime?.waitUntil) {
+    runtime.EdgeRuntime.waitUntil(task);
+    return;
+  }
+
+  task.catch((error) =>
+    console.error("[generate-polaroid-pdf] Background task falhou:", error),
+  );
+}
+
+async function callSendOrderEmail(orderId: string): Promise<void> {
+  const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
+
+  if (!internalSecret) {
+    throw new Error("INTERNAL_FUNCTION_SECRET ausente no generate-polaroid-pdf");
+  }
+
+  const response = await fetch(
+    `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/send-order-email`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "X-Internal-Secret": internalSecret,
+      },
+      body: JSON.stringify({ orderId }),
+    },
+  );
+
+  const body = (await response
+    .json()
+    .catch(() => ({ ok: false, error: response.statusText }))) as {
+    ok?: boolean;
+    error?: string;
+  };
+
+  if (!response.ok || body.ok === false) {
+    throw new Error(body.error ?? `send-order-email retornou ${response.status}`);
+  }
+}
+
+async function saveEmailError(
+  supabase: SupabaseAny,
+  orderId: string,
+  error: unknown,
+) {
+  const message = getErrorMessage(error);
+
+  console.error("[generate-polaroid-pdf] Erro ao chamar send-order-email", {
+    orderId,
+    error: message,
+  });
+
+  await supabase
+    .from("orders")
+    .update({ email_error: message.slice(0, 2000) })
+    .eq("id", orderId);
+}
+
+function triggerOrderEmail(
+  supabase: SupabaseAny,
+  orderId: string,
+) {
+  runInBackground(
+    callSendOrderEmail(orderId).catch((error) =>
+      saveEmailError(supabase, orderId, error),
+    ),
   );
 }
 
@@ -162,6 +244,8 @@ Deno.serve(async (req: Request) => {
         files_ready: true,
       })
       .eq("id", body.orderId);
+
+    triggerOrderEmail(supabase, body.orderId);
 
     return new Response(JSON.stringify({ ok: true, pdfPath }), {
       headers: { "Content-Type": "application/json" },

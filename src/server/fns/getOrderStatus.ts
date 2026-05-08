@@ -13,7 +13,9 @@ export const getOrderStatus = createServerFn({ method: "POST" })
 
     const { data: order, error } = await supabase
       .from("orders")
-      .select("id, status, quantity, total_centavos, files_ready")
+      .select(
+        "id, status, quantity, total_centavos, files_ready, customer_email, email_sent_at",
+      )
       .eq("id", data.orderId)
       .single();
 
@@ -27,6 +29,8 @@ export const getOrderStatus = createServerFn({ method: "POST" })
         quantity: order.quantity as number,
         totalCentavos: order.total_centavos as number,
         filesReady: false,
+        customerEmail: (order.customer_email as string | null) ?? null,
+        emailSentAt: (order.email_sent_at as string | null) ?? null,
         items: null,
       };
     }
@@ -44,6 +48,8 @@ export const getOrderStatus = createServerFn({ method: "POST" })
       quantity: order.quantity as number,
       totalCentavos: order.total_centavos as number,
       filesReady: (order.files_ready as boolean) ?? false,
+      customerEmail: (order.customer_email as string | null) ?? null,
+      emailSentAt: (order.email_sent_at as string | null) ?? null,
       items: items.map((i) => ({
         id: i.id as string,
         position: i.position as number,

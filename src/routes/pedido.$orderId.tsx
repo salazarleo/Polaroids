@@ -60,6 +60,17 @@ function getMPHint(
   return null;
 }
 
+function maskEmail(email: string) {
+  const [localPart, domain] = email.split("@");
+
+  if (!localPart || !domain) return email;
+
+  const visibleLocalPart =
+    localPart.length <= 3 ? localPart.slice(0, 1) : localPart.slice(0, 3);
+
+  return `${visibleLocalPart}****@${domain}`;
+}
+
 // ─── Polling ─────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 3_000;
@@ -76,6 +87,8 @@ function PedidoPage() {
   const [quantity, setQuantity] = useState<number | null>(null);
   const [totalCentavos, setTotalCentavos] = useState<number | null>(null);
   const [filesReady, setFilesReady] = useState(false);
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
+  const [emailSentAt, setEmailSentAt] = useState<string | null>(null);
   const [pollTimedOut, setPollTimedOut] = useState(false);
 
   // URLs de download (obtidas uma só vez quando filesReady = true)
@@ -94,6 +107,7 @@ function PedidoPage() {
   const attemptsRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const urlsFetchedRef = useRef(false);
+  const maskedCustomerEmail = customerEmail ? maskEmail(customerEmail) : null;
 
   // Buscar signed URLs ao confirmar que os arquivos estão prontos
   useEffect(() => {
@@ -152,6 +166,8 @@ function PedidoPage() {
         setDbStatus(result.status as DBStatus);
         setQuantity(result.quantity);
         setTotalCentavos(result.totalCentavos);
+        setCustomerEmail(result.customerEmail);
+        setEmailSentAt(result.emailSentAt);
         if (result.items) setOrderItems(result.items);
 
         if (result.status === "paid") {
@@ -198,6 +214,21 @@ function PedidoPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Suas Polaroids estão prontas para download.
             </p>
+            {maskedCustomerEmail && (
+              <div className="mx-auto mt-4 max-w-sm rounded-xl border border-border/70 bg-cream/50 px-4 py-3 text-center">
+                <p className="text-xs text-muted-foreground">
+                  {emailSentAt
+                    ? "Também enviamos o link deste pedido para:"
+                    : "Estamos enviando o link deste pedido para:"}
+                </p>
+                <p className="mt-1 break-all text-sm font-medium text-ink">
+                  {maskedCustomerEmail}
+                </p>
+                <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                  Você pode voltar a este link pelo e-mail sempre que precisar.
+                </p>
+              </div>
+            )}
             {quantity != null && totalCentavos != null && (
               <div className="mx-auto mt-4 flex w-fit items-center justify-center gap-5 rounded-xl border border-border/70 bg-cream/60 px-5 py-3 text-sm">
                 <span className="text-muted-foreground">
